@@ -20,9 +20,7 @@ import {
   Utensils,
   Briefcase,
   Laptop,
-  Gift,
-  Shield,
-  LogOut
+  Gift
 } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import { PlanButton } from './PlanButton';
@@ -32,9 +30,9 @@ import { CategoryFormModal } from './CategoryFormModal';
 import { MobileMenu } from './MobileMenu';
 
 export function MobileDashboard() {
-  const { user, signOut } = useAuth();
-  const { isAdmin } = useUserProfile();
-  const { currentPlan, isPro } = useSubscription();
+  const { user } = useAuth();
+  useUserProfile();
+  useSubscription();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,7 +267,6 @@ export function MobileDashboard() {
         size="md"
       >
         <TransactionFormModal
-          isOpen={showForm}
           onClose={() => setShowForm(false)}
           onSuccess={() => {
             setShowForm(false);
@@ -286,7 +283,6 @@ export function MobileDashboard() {
         size="lg"
       >
         <CategoryFormModal
-          isOpen={showCategories}
           onClose={() => setShowCategories(false)}
           onSuccess={() => {
             setShowCategories(false);

@@ -4,7 +4,6 @@ import type { Category, TransactionWithCategory } from '../types/database';
 import { supabase } from '../lib/supabase';
 
 interface TransactionFormModalProps {
-  isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   categories: Category[];
@@ -12,7 +11,6 @@ interface TransactionFormModalProps {
 }
 
 export function TransactionFormModal({ 
-  isOpen, 
   onClose, 
   onSuccess, 
   categories, 

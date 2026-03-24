@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { useSubscription } from '../hooks/useSubscription';
 import { supabase } from '../lib/supabase';
 import type { Category, TransactionWithCategory } from '../types/database';
 import { 
@@ -31,7 +30,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
-import { PlanLimitsMinimal } from './PlanLimitsMinimal';
+import { PlanButton } from './PlanButton';
 import { Modal } from './Modal';
 import { TransactionFormModal } from './TransactionFormModal';
 import { CategoryFormModal } from './CategoryFormModal';
@@ -39,7 +38,6 @@ import { CategoryFormModal } from './CategoryFormModal';
 export function ModernDashboardSimple() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserProfile();
-  const { currentPlan, isPro } = useSubscription();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,6 +148,13 @@ export function ModernDashboardSimple() {
                 />
               </div>
 
+              {/* Plan Button */}
+              <PlanButton 
+                currentTransactions={transactions.length} 
+                currentCategories={categories.length}
+                darkMode={darkMode}
+              />
+
               {/* Theme Toggle */}
               <button
                 onClick={() => setDarkMode(!darkMode)}
@@ -192,9 +197,6 @@ export function ModernDashboardSimple() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Plan Limits */}
-        <PlanLimitsMinimal currentTransactions={transactions.length} currentCategories={categories.length} />
-
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105`}>
@@ -318,7 +320,6 @@ export function ModernDashboardSimple() {
         size="md"
       >
         <TransactionFormModal
-          isOpen={showForm}
           onClose={() => setShowForm(false)}
           onSuccess={() => {
             setShowForm(false);

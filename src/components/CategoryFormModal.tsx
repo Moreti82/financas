@@ -4,7 +4,6 @@ import type { Category } from '../types/database';
 import { supabase } from '../lib/supabase';
 
 interface CategoryFormModalProps {
-  isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   editingCategory?: Category;
@@ -25,7 +24,6 @@ const ICON_OPTIONS = [
 ];
 
 export function CategoryFormModal({ 
-  isOpen, 
   onClose, 
   onSuccess, 
   editingCategory 
@@ -33,8 +31,7 @@ export function CategoryFormModal({
   const [formData, setFormData] = useState({
     name: editingCategory?.name || '',
     type: editingCategory?.type || 'expense',
-    icon: editingCategory?.icon || 'wallet',
-    color: editingCategory?.color || '#3B82F6'
+    icon: editingCategory?.icon || 'wallet'
   });
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +44,11 @@ export function CategoryFormModal({
         // Update existing category
         await supabase
           .from('categories')
-          .update(formData)
+          .update({
+            name: formData.name,
+            type: formData.type,
+            icon: formData.icon
+          })
           .eq('id', editingCategory.id);
       } else {
         // Create new category
@@ -57,7 +58,9 @@ export function CategoryFormModal({
             .from('categories')
             .insert({
               user_id: user.id,
-              ...formData
+              name: formData.name,
+              type: formData.type,
+              icon: formData.icon
             });
         }
       }
@@ -71,10 +74,6 @@ export function CategoryFormModal({
     }
   };
 
-  const colorOptions = [
-    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
-    '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#84CC16'
-  ];
 
   return (
     <div className="space-y-6">
@@ -153,38 +152,13 @@ export function CategoryFormModal({
         </div>
       </div>
 
-      {/* Color Selection */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-          Cor
-        </label>
-        <div className="flex gap-2 flex-wrap">
-          {colorOptions.map((color) => (
-            <button
-              key={color}
-              type="button"
-              onClick={() => setFormData({ ...formData, color })}
-              className={`w-10 h-10 rounded-lg border-2 transition-all ${
-                formData.color === color
-                  ? 'border-gray-900 scale-110'
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
-              style={{ backgroundColor: color }}
-            />
-          ))}
-        </div>
-      </div>
-
       {/* Preview */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
           Preview
         </label>
         <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div 
-            className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
-            style={{ backgroundColor: formData.color }}
-          >
+          <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white">
             {(() => {
               const iconOption = ICON_OPTIONS.find(opt => opt.name === formData.icon);
               const Icon = iconOption?.icon || Wallet;

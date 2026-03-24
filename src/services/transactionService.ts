@@ -23,8 +23,14 @@ export class TransactionService {
     return data;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async createTransaction(transaction: any): Promise<any> {
+  static async createTransaction(transaction: {
+    user_id: string;
+    category_id?: string | null;
+    type: 'income' | 'expense';
+    amount: number;
+    description?: string;
+    date?: string;
+  }): Promise<{ id: string; user_id: string; category_id: string | null; type: 'income' | 'expense'; amount: number; description: string; date: string; created_at: string }> {
     const { data, error } = await supabase
       .from('transactions')
       .insert(transaction)

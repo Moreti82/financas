@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Crown, TrendingUp, AlertCircle } from 'lucide-react';
-import { useSubscription } from '../hooks/useSubscription';
+import { TrendingUp, AlertCircle } from 'lucide-react';
 import { PlanDetailsModal } from './PlanDetailsModal';
 
 interface PlanButtonProps {
@@ -10,22 +9,24 @@ interface PlanButtonProps {
   compact?: boolean; // Para mobile
 }
 
+// Mock limits temporários para evitar erros
+const MOCK_LIMITS = {
+  transactions: 10,
+  categories: 3
+};
+
 export function PlanButton({ currentTransactions, currentCategories, darkMode = false, compact = false }: PlanButtonProps) {
-  const { currentPlan, limits, canAddTransaction, canAddCategory } = useSubscription();
   const [showModal, setShowModal] = useState(false);
 
-  if (currentPlan === 'pro' || currentPlan === 'enterprise') {
-    return null; // Não mostra para planos pagos
-  }
-
-  const transactionLimit = limits.transactions;
-  const categoryLimit = limits.categories;
+  // Valores mockados temporários
+  const transactionLimit = MOCK_LIMITS.transactions;
+  const categoryLimit = MOCK_LIMITS.categories;
   
   const transactionUsage = (currentTransactions / transactionLimit) * 100;
   const categoryUsage = (currentCategories / categoryLimit) * 100;
 
   const isNearLimit = transactionUsage >= 80 || categoryUsage >= 80;
-  const isAtLimit = !canAddTransaction(currentTransactions) || !canAddCategory(currentCategories);
+  const isAtLimit = currentTransactions >= transactionLimit || currentCategories >= categoryLimit;
 
   const getButtonColor = () => {
     if (isAtLimit) {

@@ -1,5 +1,4 @@
 import { Crown, TrendingUp, Check, X, AlertCircle } from 'lucide-react';
-import { useSubscription } from '../hooks/useSubscription';
 import { Modal } from './Modal';
 
 interface PlanDetailsModalProps {
@@ -9,17 +8,23 @@ interface PlanDetailsModalProps {
   currentCategories: number;
 }
 
-export function PlanDetailsModal({ isOpen, onClose, currentTransactions, currentCategories }: PlanDetailsModalProps) {
-  const { currentPlan, limits, canAddTransaction, canAddCategory } = useSubscription();
+// Mock limits temporários
+const MOCK_LIMITS = {
+  transactions: 10,
+  categories: 3
+};
 
-  const transactionLimit = limits.transactions;
-  const categoryLimit = limits.categories;
+export function PlanDetailsModal({ isOpen, onClose, currentTransactions, currentCategories }: PlanDetailsModalProps) {
+  // Valores mockados temporários
+  const currentPlan: 'free' | 'pro' | 'enterprise' = 'free';
+  const transactionLimit = MOCK_LIMITS.transactions;
+  const categoryLimit = MOCK_LIMITS.categories;
   
   const transactionUsage = (currentTransactions / transactionLimit) * 100;
   const categoryUsage = (currentCategories / categoryLimit) * 100;
 
   const isNearLimit = transactionUsage >= 80 || categoryUsage >= 80;
-  const isAtLimit = !canAddTransaction(currentTransactions) || !canAddCategory(currentCategories);
+  const isAtLimit = currentTransactions >= transactionLimit || currentCategories >= categoryLimit;
 
   const getUsageColor = (usage: number) => {
     if (usage >= 100) return 'bg-red-500';
@@ -171,11 +176,7 @@ export function PlanDetailsModal({ isOpen, onClose, currentTransactions, current
             </div>
 
             {/* Pro Plan */}
-            <div className={`border rounded-lg p-3 ${
-              currentPlan === 'pro' 
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400' 
-                : 'border-gray-200 dark:border-gray-700'
-            }`}>
+            <div className="border rounded-lg p-3 border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Crown className="w-4 h-4 text-blue-500" />
