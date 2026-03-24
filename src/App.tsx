@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
 import { AdminPage } from './pages/AdminPage';
+import { PricingPage } from './pages/PricingPage';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -24,6 +25,10 @@ function AppContent() {
       <Route 
         path="/admin" 
         element={<AdminPage />} 
+      />
+      <Route 
+        path="/pricing" 
+        element={<PricingPage />} 
       />
       <Route 
         path="/" 

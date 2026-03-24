@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { useSubscription } from '../hooks/useSubscription';
 import { supabase } from '../lib/supabase';
 import type { Category, TransactionWithCategory } from '../types/database';
-import { LogOut, Plus, TrendingUp, TrendingDown, Wallet, Settings, Shield } from 'lucide-react';
+import { LogOut, Plus, TrendingUp, TrendingDown, Wallet, Settings, Shield, Crown } from 'lucide-react';
 import { TransactionList } from './TransactionList';
 import { TransactionForm } from './TransactionForm';
 import { MonthlyChart } from './MonthlyChart';
 import { CategoryList } from './CategoryList';
 import { UserAvatar } from './UserAvatar';
+import { PlanLimits } from './PlanLimits';
 
 export function Dashboard() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserProfile();
+  const { currentPlan, isPro } = useSubscription();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
