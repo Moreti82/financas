@@ -1,23 +1,24 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { TransactionWithCategory } from '../types/database';
-import { Trash2, Calendar } from 'lucide-react';
+import { Trash2, Calendar, Edit2 } from 'lucide-react';
 import * as Icons from 'lucide-react';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface TransactionListProps {
   transactions: TransactionWithCategory[];
   onTransactionDeleted: () => void;
+  onTransactionEdit?: (transaction: TransactionWithCategory) => void;
 }
 
-export function TransactionList({ transactions, onTransactionDeleted }: TransactionListProps) {
+export function TransactionList({ transactions, onTransactionDeleted, onTransactionEdit }: TransactionListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<TransactionWithCategory | null>(null);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta transação?')) return;
-
-    setDeletingId(id);
+  const handleDelete = async (transaction: TransactionWithCategory) => {
+    setDeletingId(transaction.id);
     try {
-      const { error } = await supabase.from('transactions').delete().eq('id', id);
+      const { error } = await supabase.from('transactions').delete().eq('id', transaction.id);
       if (error) throw error;
       onTransactionDeleted();
     } catch (error) {
@@ -86,7 +87,7 @@ export function TransactionList({ transactions, onTransactionDeleted }: Transact
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 <p
                   className={`text-lg font-bold ${
                     transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
@@ -94,18 +95,38 @@ export function TransactionList({ transactions, onTransactionDeleted }: Transact
                 >
                   {transaction.type === 'income' ? '+' : '-'} R$ {Number(transaction.amount).toFixed(2)}
                 </p>
-                <button
-                  onClick={() => handleDelete(transaction.id)}
-                  disabled={deletingId === transaction.id}
-                  className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  {onTransactionEdit && (
+                    <button
+                      onClick={() => onTransactionEdit(transaction)}
+                      className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setDeleteDialog(transaction)}
+                    disabled={deletingId === transaction.id}
+                    className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
     </div>
+    
+    <ConfirmDialog
+      isOpen={!!deleteDialog}
+      onClose={() => setDeleteDialog(null)}
+      onConfirm={() => deleteDialog && handleDelete(deleteDialog)}
+      title="Excluir Transação"
+      message={`Tem certeza que deseja excluir a transação "${deleteDialog?.description || deleteDialog?.category?.name || 'Sem descrição'}" no valor de R$ ${deleteDialog ? Number(deleteDialog.amount).toFixed(2) : '0,00'}? Esta ação não poderá ser desfeita.`}
+      confirmText="Excluir"
+      type="danger"
+    />
   );
 }

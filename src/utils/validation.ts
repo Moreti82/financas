@@ -54,6 +54,27 @@ export const validateTransaction = (
   return errors;
 };
 
+export const validateCategory = (
+  name: string,
+  type: 'income' | 'expense'
+): ValidationError[] => {
+  const errors: ValidationError[] = [];
+
+  if (!name.trim()) {
+    errors.push({ field: 'name', message: 'O nome da categoria é obrigatório' });
+  } else if (name.length < 2) {
+    errors.push({ field: 'name', message: 'O nome deve ter pelo menos 2 caracteres' });
+  } else if (name.length > 50) {
+    errors.push({ field: 'name', message: 'O nome deve ter no máximo 50 caracteres' });
+  }
+
+  if (!type || !['income', 'expense'].includes(type)) {
+    errors.push({ field: 'type', message: 'O tipo é obrigatório' });
+  }
+
+  return errors;
+};
+
 export const validateAuth = (email: string, password: string): ValidationError[] => {
   const errors: ValidationError[] = [];
 

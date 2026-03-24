@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Category } from '../types/database';
+import type { Category, TransactionWithCategory } from '../types/database';
 import { X, AlertCircle } from 'lucide-react';
 import * as Icons from 'lucide-react';
 
 interface TransactionFormProps {
   categories: Category[];
+  transaction?: TransactionWithCategory;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function TransactionForm({ categories, onSuccess, onCancel }: TransactionFormProps) {
+export function TransactionForm({ categories, transaction, onSuccess, onCancel }: TransactionFormProps) {
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -18,6 +19,16 @@ export function TransactionForm({ categories, onSuccess, onCancel }: Transaction
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (transaction) {
+      setType(transaction.type);
+      setAmount(transaction.amount.toString());
+      setCategoryId(transaction.category_id || '');
+      setDescription(transaction.description);
+      setDate(transaction.date);
+    }
+  }, [transaction]);
 
   const filteredCategories = categories.filter((cat) => cat.type === type);
 
@@ -27,20 +38,29 @@ export function TransactionForm({ categories, onSuccess, onCancel }: Transaction
     setLoading(true);
 
     try {
-      const { error } = await supabase.from('transactions').insert({
+      const transactionData = {
         type,
         amount: parseFloat(amount),
         category_id: categoryId || null,
         description,
         date,
-        user_id: (await supabase.auth.getUser()).data.user!.id,
-      });
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+      };
 
-      if (error) throw error;
+      let result;
+      if (transaction) {
+        result = await supabase
+          .from('transactions')
+          .update(transactionData)
+          .eq('id', transaction.id);
+      } else {
+        result = await supabase.from('transactions').insert(transactionData);
+      }
+
+      if (result.error) throw result.error;
       onSuccess();
     } catch (err) {
-      setError('Erro ao adicionar transação');
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Erro ao salvar transação');
     } finally {
       setLoading(false);
     }
@@ -56,7 +76,9 @@ export function TransactionForm({ categories, onSuccess, onCancel }: Transaction
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-slate-900">Nova Transação</h2>
+        <h2 className="text-xl font-bold text-slate-900">
+          {transaction ? 'Editar Transação' : 'Nova Transação'}
+        </h2>
         <button
           onClick={onCancel}
           className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
