@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Auth } from './components/Auth';
-import { ModernDashboardSimple } from './components/ModernDashboardSimple';
+import { ResponsiveDashboard } from './components/ResponsiveDashboard';
 import { AdminPage } from './pages/AdminPage';
 import { PricingPage } from './pages/PricingPage';
 
@@ -32,7 +32,7 @@ function AppContent() {
       />
       <Route 
         path="/" 
-        element={user ? <ModernDashboardSimple /> : <Navigate to="/login" replace />} 
+        element={user ? <ResponsiveDashboard /> : <Navigate to="/login" replace />} 
       />
     </Routes>
   );
