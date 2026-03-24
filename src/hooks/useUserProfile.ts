@@ -23,7 +23,7 @@ export function useUserProfile() {
           const mockProfile: UserProfile = {
             id: 'mock-profile-id',
             user_id: user.id,
-            role: user.email === 'admin@financaspro.com' ? 'admin' : 'user',
+            role: user.email === 'engmoreti@gmail.com' ? 'admin' : 'user',
             plan: 'free',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -62,7 +62,7 @@ export function useUserProfile() {
           .from('user_profiles')
           .insert({
             user_id: user.id,
-            role: user.email === 'admin@financaspro.com' ? 'admin' : 'user',
+            role: user.email === 'SEU_EMAIL_AQUI@exemplo.com' ? 'admin' : 'user',
             plan: 'free'
           })
           .select()
