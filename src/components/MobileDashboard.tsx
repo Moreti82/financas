@@ -25,7 +25,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
-import { PlanLimitsMinimal } from './PlanLimitsMinimal';
+import { PlanButton } from './PlanButton';
 import { Modal } from './Modal';
 import { TransactionFormModal } from './TransactionFormModal';
 import { CategoryFormModal } from './CategoryFormModal';
@@ -130,6 +130,12 @@ export function MobileDashboard() {
             </div>
             
             <div className="flex items-center gap-2">
+              <PlanButton 
+                currentTransactions={transactions.length} 
+                currentCategories={categories.length}
+                darkMode={darkMode}
+                compact={true}
+              />
               <MobileMenu darkMode={darkMode} setDarkMode={setDarkMode} />
               <UserAvatar email={user?.email} size="sm" />
             </div>
@@ -139,9 +145,6 @@ export function MobileDashboard() {
 
       {/* Main Content */}
       <main className="px-4 py-6 space-y-6">
-        {/* Plan Limits */}
-        <PlanLimitsMinimal currentTransactions={transactions.length} currentCategories={categories.length} />
-
         {/* Stats Grid - Mobile Optimized */}
         <div className="grid grid-cols-2 gap-4">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 border ${darkMode ? 'border-gray-700' : 'border-slate-200'}`}>
