@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { supabase } from '../lib/supabase';
-import type { Transaction, Category, TransactionWithCategory } from '../types/database';
-import { DollarSign, LogOut, Plus, TrendingUp, TrendingDown, Wallet, Settings } from 'lucide-react';
+import type { Category, TransactionWithCategory } from '../types/database';
+import { LogOut, Plus, TrendingUp, TrendingDown, Wallet, Settings, Shield } from 'lucide-react';
 import { TransactionList } from './TransactionList';
 import { TransactionForm } from './TransactionForm';
 import { MonthlyChart } from './MonthlyChart';
@@ -11,6 +12,7 @@ import { UserAvatar } from './UserAvatar';
 
 export function Dashboard() {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserProfile();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,6 +102,15 @@ export function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {isAdmin && (
+                <button
+                  onClick={() => window.location.href = '/admin'}
+                  className="flex items-center gap-2 px-4 py-2 text-purple-600 hover:text-purple-900 hover:bg-purple-100 rounded-lg transition-colors"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span className="hidden sm:inline">Admin</span>
+                </button>
+              )}
               <button
                 onClick={() => setShowCategories(!showCategories)}
                 className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"

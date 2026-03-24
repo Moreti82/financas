@@ -1,6 +1,67 @@
 export interface Database {
   public: {
     Tables: {
+      user_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: 'admin' | 'user';
+          plan: 'free' | 'pro' | 'enterprise';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role?: 'admin' | 'user';
+          plan?: 'free' | 'pro' | 'enterprise';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: 'admin' | 'user';
+          plan?: 'free' | 'pro' | 'enterprise';
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          plan: 'free' | 'pro' | 'enterprise';
+          status: 'active' | 'cancelled' | 'expired';
+          stripe_subscription_id?: string;
+          current_period_start: string;
+          current_period_end: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plan: 'free' | 'pro' | 'enterprise';
+          status?: 'active' | 'cancelled' | 'expired';
+          stripe_subscription_id?: string;
+          current_period_start: string;
+          current_period_end: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          plan?: 'free' | 'pro' | 'enterprise';
+          status?: 'active' | 'cancelled' | 'expired';
+          stripe_subscription_id?: string;
+          current_period_start?: string;
+          current_period_end?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       categories: {
         Row: {
           id: string;
@@ -68,3 +129,10 @@ export type Transaction = Database['public']['Tables']['transactions']['Row'];
 export type TransactionWithCategory = Transaction & {
   category: Category | null;
 };
+
+export type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
+export type Subscription = Database['public']['Tables']['subscriptions']['Row'];
+
+export type UserRole = 'admin' | 'user';
+export type PlanType = 'free' | 'pro' | 'enterprise';
+export type SubscriptionStatus = 'active' | 'cancelled' | 'expired';
