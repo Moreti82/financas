@@ -58,11 +58,12 @@ export function useUserProfile() {
         setUserProfile(data);
       } else {
         // Se não existir perfil, criar um padrão
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: newProfile, error: createError } = await supabase
           .from('user_profiles')
           .insert({
             user_id: user.id,
-            role: user.email === 'SEU_EMAIL_AQUI@exemplo.com' ? 'admin' : 'user',
+            role: user.email === 'engmoreti@gmail.com' ? 'admin' : 'user',
             plan: 'free'
           })
           .select()
