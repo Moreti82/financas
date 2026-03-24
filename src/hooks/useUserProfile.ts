@@ -12,6 +12,29 @@ export function useUserProfile() {
 
   const loadUserProfile = async () => {
     try {
+      // Verificar se está em modo desenvolvimento
+      const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
+      
+      if (isDevMode) {
+        // Modo desenvolvimento - criar perfil mockado baseado no usuário atual
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          const mockProfile: UserProfile = {
+            id: 'mock-profile-id',
+            user_id: user.id,
+            role: user.email === 'admin@financaspro.com' ? 'admin' : 'user',
+            plan: 'free',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          setUserProfile(mockProfile);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Modo produção - usar Supabase real
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {

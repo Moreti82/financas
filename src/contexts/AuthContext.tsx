@@ -10,6 +10,15 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
+// Mock user para desenvolvimento
+const mockUser = {
+  id: 'mock-user-id',
+  email: 'admin@financaspro.com',
+  created_at: new Date().toISOString(),
+  aud: 'authenticated',
+  role: 'authenticated',
+} as User;
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -17,6 +26,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Verificar se está em modo desenvolvimento sem Supabase
+    const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
+    
+    if (isDevMode) {
+      // Modo desenvolvimento - usar mock user
+      setUser(mockUser);
+      setLoading(false);
+      return;
+    }
+
+    // Modo produção - usar Supabase real
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
@@ -32,6 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
+    
+    if (isDevMode) {
+      // Mock signup - sempre funciona
+      setUser(mockUser);
+      return { error: null };
+    }
+
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -44,6 +72,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
+    const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
+    
+    if (isDevMode) {
+      // Mock signin - funciona com qualquer email/senha
+      const mockSignInUser = {
+        ...mockUser,
+        email: email, // Usa o email digitado
+      };
+      setUser(mockSignInUser);
+      return { error: null };
+    }
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -56,6 +96,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
+    
+    if (isDevMode) {
+      setUser(null);
+      return;
+    }
+    
     await supabase.auth.signOut();
   };
 

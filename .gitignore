@@ -38,3 +38,4 @@ coverage
 
 # Keep .env.production for Vercel
 !.env.production
+!.env.development
