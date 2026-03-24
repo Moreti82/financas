@@ -56,77 +56,79 @@ export function TransactionList({ transactions, onTransactionDeleted, onTransact
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
-      <div className="p-6 border-b border-slate-200">
-        <h2 className="text-xl font-bold text-slate-900">Transações</h2>
-      </div>
-      <div className="divide-y divide-slate-200">
-        {transactions.map((transaction) => {
-          const Icon = transaction.category ? getIcon(transaction.category.icon) : Icons.Circle;
-          return (
-            <div
-              key={transaction.id}
-              className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between"
-            >
-              <div className="flex items-center gap-4 flex-1">
-                <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    transaction.type === 'income'
-                      ? 'bg-green-100 text-green-600'
-                      : 'bg-red-100 text-red-600'
-                  }`}
-                >
-                  <Icon className="w-6 h-6" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 truncate">
-                    {transaction.description || transaction.category?.name || 'Sem descrição'}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    {transaction.category?.name || 'Sem categoria'} • {formatDate(transaction.date)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <p
-                  className={`text-lg font-bold ${
-                    transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                  }`}
-                >
-                  {transaction.type === 'income' ? '+' : '-'} R$ {Number(transaction.amount).toFixed(2)}
-                </p>
-                <div className="flex items-center gap-1">
-                  {onTransactionEdit && (
-                    <button
-                      onClick={() => onTransactionEdit(transaction)}
-                      className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setDeleteDialog(transaction)}
-                    disabled={deletingId === transaction.id}
-                    className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors disabled:opacity-50"
+    <>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200">
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-xl font-bold text-slate-900">Transações</h2>
+        </div>
+        <div className="divide-y divide-slate-200">
+          {transactions.map((transaction) => {
+            const Icon = transaction.category ? getIcon(transaction.category.icon) : Icons.Circle;
+            return (
+              <div
+                key={transaction.id}
+                className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between"
+              >
+                <div className="flex items-center gap-4 flex-1">
+                  <div
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                      transaction.type === 'income'
+                        ? 'bg-green-100 text-green-600'
+                        : 'bg-red-100 text-red-600'
+                    }`}
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-slate-900 truncate">
+                      {transaction.description || transaction.category?.name || 'Sem descrição'}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {transaction.category?.name || 'Sem categoria'} • {formatDate(transaction.date)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p
+                    className={`text-lg font-bold ${
+                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                    }`}
+                  >
+                    {transaction.type === 'income' ? '+' : '-'} R$ {Number(transaction.amount).toFixed(2)}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    {onTransactionEdit && (
+                      <button
+                        onClick={() => onTransactionEdit(transaction)}
+                        className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setDeleteDialog(transaction)}
+                      disabled={deletingId === transaction.id}
+                      className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
-    
-    <ConfirmDialog
-      isOpen={!!deleteDialog}
-      onClose={() => setDeleteDialog(null)}
-      onConfirm={() => deleteDialog && handleDelete(deleteDialog)}
-      title="Excluir Transação"
-      message={`Tem certeza que deseja excluir a transação "${deleteDialog?.description || deleteDialog?.category?.name || 'Sem descrição'}" no valor de R$ ${deleteDialog ? Number(deleteDialog.amount).toFixed(2) : '0,00'}? Esta ação não poderá ser desfeita.`}
-      confirmText="Excluir"
-      type="danger"
-    />
+      
+      <ConfirmDialog
+        isOpen={!!deleteDialog}
+        onClose={() => setDeleteDialog(null)}
+        onConfirm={() => deleteDialog && handleDelete(deleteDialog)}
+        title="Excluir Transação"
+        message={`Tem certeza que deseja excluir a transação "${deleteDialog?.description || deleteDialog?.category?.name || 'Sem descrição'}" no valor de R$ ${deleteDialog ? Number(deleteDialog.amount).toFixed(2) : '0,00'}? Esta ação não poderá ser desfeita.`}
+        confirmText="Excluir"
+        type="danger"
+      />
+    </>
   );
 }
