@@ -43,17 +43,37 @@ export function useUserProfile() {
         return;
       }
 
-      // Por enquanto, criar perfil mockado até configurar as tabelas no Supabase
-      const mockProfile: UserProfile = {
-        id: 'mock-id',
-        user_id: user.id,
-        role: user.email === 'admin@financaspro.com' ? 'admin' : 'user',
-        plan: 'free',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      // Buscar perfil do Supabase
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-      setUserProfile(mockProfile);
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading user profile:', error);
+      }
+
+      if (data) {
+        setUserProfile(data);
+      } else {
+        // Se não existir perfil, criar um padrão
+        const { data: newProfile, error: createError } = await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: user.id,
+            role: user.email === 'admin@financaspro.com' ? 'admin' : 'user',
+            plan: 'free'
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating user profile:', createError);
+        } else {
+          setUserProfile(newProfile);
+        }
+      }
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
     } finally {
@@ -65,10 +85,30 @@ export function useUserProfile() {
     if (!userProfile) return;
 
     try {
-      // Mock update até configurar Supabase
-      const updatedProfile = { ...userProfile, ...updates, updated_at: new Date().toISOString() };
-      setUserProfile(updatedProfile);
-      return updatedProfile;
+      const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
+      
+      if (isDevMode) {
+        // Mock update
+        const updatedProfile = { ...userProfile, ...updates, updated_at: new Date().toISOString() };
+        setUserProfile(updatedProfile);
+        return updatedProfile;
+      }
+
+      // Update real no Supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userProfile.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setUserProfile(data);
+      return data;
     } catch (error) {
       console.error('Error updating profile:', error);
       throw error;
