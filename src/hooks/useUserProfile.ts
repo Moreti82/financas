@@ -58,7 +58,6 @@ export function useUserProfile() {
         setUserProfile(data);
       } else {
         // Se não existir perfil, criar um padrão
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: newProfile, error: createError } = await supabase
           .from('user_profiles')
           .insert({
@@ -96,13 +95,12 @@ export function useUserProfile() {
       }
 
       // Update real no Supabase
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await supabase
         .from('user_profiles')
         .update({
           ...updates,
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', userProfile.id)
         .select()
         .single();
