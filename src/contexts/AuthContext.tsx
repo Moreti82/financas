@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { useToast } from '../hooks/useToast';
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   useEffect(() => {
     // Verificar se está em modo desenvolvimento sem Supabase
@@ -57,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isDevMode) {
       // Mock signup - sempre funciona
       setUser(mockUser);
+      toast.success('Conta criada com sucesso!', 'Bem-vindo ao FinançasPro');
       return { error: null };
     }
 
@@ -65,8 +68,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
       });
+      
+      if (error) {
+        toast.error('Erro ao criar conta', error.message);
+      } else {
+        toast.success('Conta criada com sucesso!', 'Verifique seu email para confirmar');
+      }
+      
       return { error };
     } catch (error) {
+      toast.error('Erro ao criar conta', 'Ocorreu um erro inesperado');
       return { error: error as Error };
     }
   };
@@ -77,10 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isDevMode) {
       // Mock signin - funciona com qualquer email/senha
       const mockSignInUser = {
-        ...mockUser,
-        email: email, // Usa o email digitado
-      };
+        id: 'mock-user-id',
+        email: email,
+        created_at: new Date().toISOString(),
+        aud: 'authenticated',
+        role: 'authenticated',
+      } as User;
+      
       setUser(mockSignInUser);
+      toast.success('Login realizado com sucesso!', `Bem-vindo de volta, ${email}`);
       return { error: null };
     }
 
@@ -89,8 +105,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
       });
+      
+      if (error) {
+        toast.error('Erro ao fazer login', error.message);
+      } else {
+        toast.success('Login realizado com sucesso!', 'Bem-vindo ao FinançasPro');
+      }
+      
       return { error };
     } catch (error) {
+      toast.error('Erro ao fazer login', 'Ocorreu um erro inesperado');
       return { error: error as Error };
     }
   };
