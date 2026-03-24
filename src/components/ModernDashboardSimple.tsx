@@ -30,10 +30,11 @@ import {
   Shield,
   LogOut
 } from 'lucide-react';
-import { TransactionForm } from './TransactionForm';
-import { CategoryList } from './CategoryList';
 import { UserAvatar } from './UserAvatar';
 import { PlanLimits } from './PlanLimits';
+import { Modal } from './Modal';
+import { TransactionFormModal } from './TransactionFormModal';
+import { CategoryFormModal } from './CategoryFormModal';
 
 export function ModernDashboardSimple() {
   const { user, signOut } = useAuth();
@@ -310,24 +311,38 @@ export function ModernDashboardSimple() {
       </main>
 
       {/* Modals */}
-      {showForm && (
-        <TransactionForm
+      <Modal
+        isOpen={showForm}
+        onClose={() => setShowForm(false)}
+        title="Nova Transação"
+        size="md"
+      >
+        <TransactionFormModal
+          isOpen={showForm}
+          onClose={() => setShowForm(false)}
           onSuccess={() => {
             setShowForm(false);
             loadData();
           }}
           categories={categories}
         />
-      )}
+      </Modal>
 
-      {showCategories && (
-        <CategoryList
+      <Modal
+        isOpen={showCategories}
+        onClose={() => setShowCategories(false)}
+        title="Gerenciar Categorias"
+        size="lg"
+      >
+        <CategoryFormModal
+          isOpen={showCategories}
+          onClose={() => setShowCategories(false)}
           onSuccess={() => {
             setShowCategories(false);
             loadData();
           }}
         />
-      )}
+      </Modal>
     </div>
   );
 }
