@@ -1,4 +1,4 @@
-import { AlertCircle, Crown } from 'lucide-react';
+import { AlertCircle, Crown, Star } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 
 interface PlanLimitsProps {

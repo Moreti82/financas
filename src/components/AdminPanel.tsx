@@ -17,7 +17,6 @@ export function AdminPanel() {
 
   useEffect(() => {
     loadSubscriptions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const loadSubscriptions = async () => {
