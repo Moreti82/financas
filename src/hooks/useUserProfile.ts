@@ -4,6 +4,7 @@ import type { UserProfile } from '../types/database';
 
 export function useUserProfile() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [authUser, setAuthUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -12,30 +13,10 @@ export function useUserProfile() {
 
   const loadUserProfile = async () => {
     try {
-      // Verificar se está em modo desenvolvimento
-      const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
-      
-      if (isDevMode) {
-        // Modo desenvolvimento - criar perfil mockado baseado no usuário atual
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          const mockProfile: UserProfile = {
-            id: 'mock-profile-id',
-            user_id: user.id,
-            role: user.email === 'engmoreti@gmail.com' ? 'admin' : 'user',
-            plan: 'free',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-          setUserProfile(mockProfile);
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Modo produção - usar Supabase real
+      // Usar Supabase real
       const { data: { user } } = await supabase.auth.getUser();
+      setAuthUser(user);
+      const userEmail = user?.email?.toLowerCase() || '';
       
       if (!user) {
         setUserProfile(null);
@@ -62,7 +43,7 @@ export function useUserProfile() {
           .from('user_profiles')
           .insert({
             user_id: user.id,
-            role: user.email === 'engmoreti@gmail.com' ? 'admin' : 'user',
+            role: userEmail === 'engmoreti@gmail.com' ? 'admin' : 'user',
             plan: 'free'
           })
           .select()
@@ -85,15 +66,6 @@ export function useUserProfile() {
     if (!userProfile) return;
 
     try {
-      const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
-      
-      if (isDevMode) {
-        // Mock update
-        const updatedProfile = { ...userProfile, ...updates, updated_at: new Date().toISOString() };
-        setUserProfile(updatedProfile);
-        return updatedProfile;
-      }
-
       // Update real no Supabase
       const { data, error } = await supabase
         .from('user_profiles')
@@ -114,7 +86,8 @@ export function useUserProfile() {
     }
   };
 
-  const isAdmin = userProfile?.role === 'admin';
+  const isAdmin = userProfile?.role === 'admin' || authUser?.email?.toLowerCase() === 'engmoreti@gmail.com';
+  // Check if current logged user matches admin email directly too
   const isUser = userProfile?.role === 'user';
   const currentPlan = userProfile?.plan || 'free';
 

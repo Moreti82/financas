@@ -1,4 +1,5 @@
 import { User } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface UserAvatarProps {
   email?: string;
@@ -7,6 +8,17 @@ interface UserAvatarProps {
 }
 
 export function UserAvatar({ email, size = 'md', className = '' }: UserAvatarProps) {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (email) {
+      const storedAvatar = localStorage.getItem(`avatar_${email}`);
+      if (storedAvatar) {
+        setAvatarUrl(storedAvatar);
+      }
+    }
+  }, [email]);
+
   const sizeClasses = {
     sm: 'w-8 h-8 text-sm',
     md: 'w-10 h-10 text-base',
@@ -34,6 +46,14 @@ export function UserAvatar({ email, size = 'md', className = '' }: UserAvatarPro
     return colors[index];
   };
 
+  if (avatarUrl) {
+    return (
+      <div className={`${sizeClasses[size]} ${className} relative rounded-full overflow-hidden ring-2 ring-white shadow-sm`}>
+        <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+
   return (
     <div className={`
       ${sizeClasses[size]} 
@@ -44,6 +64,9 @@ export function UserAvatar({ email, size = 'md', className = '' }: UserAvatarPro
       justify-center 
       text-white 
       font-medium 
+      ring-2
+      ring-white
+      shadow-sm
       ${className}
     `}>
       {email ? (

@@ -182,7 +182,7 @@ export function PlanDetailsModal({ isOpen, onClose, currentTransactions, current
                   <Crown className="w-4 h-4 text-blue-500" />
                   <span className="font-medium text-gray-900 dark:text-white">Pro</span>
                 </div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">R$ 19,90/mês</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">R$ 5,00/mês</span>
               </div>
               <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
                 <li className="flex items-center gap-1">

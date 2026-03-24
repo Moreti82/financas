@@ -8,17 +8,9 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
-
-// Mock user para desenvolvimento
-const mockUser = {
-  id: 'mock-user-id',
-  email: 'admin@financaspro.com',
-  created_at: new Date().toISOString(),
-  aud: 'authenticated',
-  role: 'authenticated',
-} as User;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -28,23 +20,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const toast = useToast();
 
   useEffect(() => {
-    // Verificar se está em modo desenvolvimento sem Supabase
-    const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
-    
-    if (isDevMode) {
-      // Modo desenvolvimento - usar mock user
-      setUser(mockUser);
-      setLoading(false);
-      return;
-    }
-
     // Modo produção - usar Supabase real
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: any) => {
       setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch((err: any) => {
+      console.error("Erro ao tentar conectar ao Supabase:", err);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       (async () => {
         setUser(session?.user ?? null);
       })();
@@ -54,15 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
-    
-    if (isDevMode) {
-      // Mock signup - sempre funciona
-      setUser(mockUser);
-      toast.success('Conta criada com sucesso!', 'Bem-vindo ao FinançasPro');
-      return { error: null };
-    }
-
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -72,7 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         toast.error('Erro ao criar conta', error.message);
       } else {
-        toast.success('Conta criada com sucesso!', 'Verifique seu email para confirmar');
+        toast.success(
+          'Conta criada com sucesso!', 
+          '⚠️ IMPORTANTE: Enviamos um link de confirmação para o seu e-mail. Você precisa clicar nele antes de conseguir logar!'
+        );
       }
       
       return { error };
@@ -83,23 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
-    
-    if (isDevMode) {
-      // Mock signin - funciona com qualquer email/senha
-      const mockSignInUser = {
-        id: 'mock-user-id',
-        email: email,
-        created_at: new Date().toISOString(),
-        aud: 'authenticated',
-        role: 'authenticated',
-      } as User;
-      
-      setUser(mockSignInUser);
-      toast.success('Login realizado com sucesso!', `Bem-vindo de volta, ${email}`);
-      return { error: null };
-    }
-
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -119,19 +81,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signOut = async () => {
-    const isDevMode = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
-    
-    if (isDevMode) {
-      setUser(null);
-      return;
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      
+      if (error) {
+        toast.error('Erro no login com Google', error.message);
+      }
+      return { error };
+    } catch (error) {
+      toast.error('Erro no login', 'Falha ao conectar com o Google');
+      return { error: error as Error };
     }
-    
+  };
+
+  const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );

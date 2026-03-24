@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menu, X, Home, Plus, Settings, LogOut, Shield, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -11,6 +12,7 @@ interface MobileMenuProps {
 export function MobileMenu({ darkMode, setDarkMode }: MobileMenuProps) {
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserProfile();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
@@ -34,7 +36,7 @@ export function MobileMenu({ darkMode, setDarkMode }: MobileMenuProps) {
       // Trigger transaction modal
       document.getElementById('new-transaction-btn')?.click();
     } else if (item.href && item.href !== '#') {
-      window.location.href = item.href;
+      navigate(item.href);
     }
   };
 

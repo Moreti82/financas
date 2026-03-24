@@ -36,7 +36,7 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-green-400" />;
       case 'error':
         return <XCircle className="w-5 h-5 text-red-500" />;
       case 'warning':
@@ -49,7 +49,7 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
   const getColors = () => {
     switch (type) {
       case 'success':
-        return 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800';
+        return 'border-slate-800 bg-slate-900 dark:bg-slate-900 border-slate-700';
       case 'error':
         return 'border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800';
       case 'warning':
@@ -62,7 +62,7 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
   const getTitleColor = () => {
     switch (type) {
       case 'success':
-        return 'text-green-800 dark:text-green-200';
+        return 'text-white dark:text-white font-medium';
       case 'error':
         return 'text-red-800 dark:text-red-200';
       case 'warning':
@@ -75,7 +75,7 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
   const getMessageColor = () => {
     switch (type) {
       case 'success':
-        return 'text-green-600 dark:text-green-300';
+        return 'text-slate-300 dark:text-gray-300';
       case 'error':
         return 'text-red-600 dark:text-red-300';
       case 'warning':
@@ -95,7 +95,7 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
       `}
     >
       <div className={`
-        flex items-start gap-3 p-4 rounded-lg border shadow-lg backdrop-blur-sm
+        flex items-start gap-3 p-4 rounded-xl border shadow-2xl
         ${getColors()}
       `}>
         {/* Icon */}

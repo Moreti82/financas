@@ -29,8 +29,8 @@ export function PricingPage() {
     {
       id: 'pro',
       name: 'Pro',
-      price: 19.90,
-      yearlyPrice: 199.90,
+      price: 5.00,
+      yearlyPrice: 50.00,
       description: 'Para profissionais',
       icon: Crown,
       color: 'blue',
@@ -50,8 +50,8 @@ export function PricingPage() {
     {
       id: 'enterprise',
       name: 'Enterprise',
-      price: 49.90,
-      yearlyPrice: 499.90,
+      price: 15.00,
+      yearlyPrice: 150.00,
       description: 'Para equipes',
       icon: Star,
       color: 'purple',

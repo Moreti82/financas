@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { supabase } from '../lib/supabase';
@@ -38,6 +39,7 @@ import { CategoryFormModal } from './CategoryFormModal';
 export function ModernDashboardSimple() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserProfile();
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,7 +173,7 @@ export function ModernDashboardSimple() {
               {/* Admin Button */}
               {isAdmin && (
                 <button
-                  onClick={() => window.location.href = '/admin'}
+                  onClick={() => navigate('/admin')}
                   className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition-all hover:shadow-lg"
                 >
                   <Shield className="w-4 h-4" />
@@ -336,7 +338,6 @@ export function ModernDashboardSimple() {
         size="lg"
       >
         <CategoryFormModal
-          isOpen={showCategories}
           onClose={() => setShowCategories(false)}
           onSuccess={() => {
             setShowCategories(false);

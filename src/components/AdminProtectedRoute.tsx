@@ -1,4 +1,5 @@
 import { useUserProfile } from '../hooks/useUserProfile';
+import { useNavigate } from 'react-router-dom';
 import { Lock, AlertCircle } from 'lucide-react';
 
 interface AdminProtectedRouteProps {
@@ -7,6 +8,7 @@ interface AdminProtectedRouteProps {
 
 export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
   const { userProfile, loading, isAdmin } = useUserProfile();
+  const navigate = useNavigate();
 
   // Debug
   console.log('AdminProtectedRoute - isAdmin:', isAdmin);
@@ -64,7 +66,7 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
             </button>
             
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => navigate('/')}
               className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
             >
               Ir para Dashboard

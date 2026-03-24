@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useSubscription } from '../hooks/useSubscription';
@@ -28,7 +29,8 @@ import {
   Laptop,
   Gift,
   Shield,
-  LogOut
+  LogOut,
+  Filter
 } from 'lucide-react';
 import { TransactionForm } from './TransactionForm';
 import { CategoryList } from './CategoryList';
@@ -47,7 +49,7 @@ interface StatCard {
 export function ModernDashboard() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserProfile();
-  const { currentPlan, isPro } = useSubscription();
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,6 @@ export function ModernDashboard() {
   const [showCategories, setShowCategories] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [editingTransaction, setEditingTransaction] = useState<TransactionWithCategory | undefined>();
 
   useEffect(() => {
@@ -211,7 +212,7 @@ export function ModernDashboard() {
               {/* Admin Button */}
               {isAdmin && (
                 <button
-                  onClick={() => window.location.href = '/admin'}
+                  onClick={() => navigate('/admin')}
                   className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition-all hover:shadow-lg"
                 >
                   <Shield className="w-4 h-4" />
@@ -356,20 +357,20 @@ export function ModernDashboard() {
       {/* Modals */}
       {showForm && (
         <TransactionForm
-          onClose={() => setShowForm(false)}
+          transaction={editingTransaction}
+          categories={categories}
           onSuccess={() => {
             setShowForm(false);
             loadData();
           }}
-          editingTransaction={editingTransaction}
-          categories={categories}
+          onCancel={() => setShowForm(false)}
         />
       )}
 
       {showCategories && (
         <CategoryList
-          onClose={() => setShowCategories(false)}
-          onSuccess={() => {
+          categories={categories}
+          onCategoryUpdated={() => {
             setShowCategories(false);
             loadData();
           }}
