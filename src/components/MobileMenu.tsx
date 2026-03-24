@@ -60,7 +60,7 @@ export function MobileMenu({ darkMode, setDarkMode }: MobileMenuProps) {
           />
           
           {/* Menu Panel */}
-          <div className={`fixed right-0 top-0 h-full w-72 ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-2xl transform transition-transform duration-300`}>
+          <div className={`fixed right-0 top-0 h-full w-72 ${darkMode ? 'bg-slate-900' : 'bg-white'} shadow-[0_0_60px_rgba(0,0,0,0.4)] transform transition-transform duration-300 border-l ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
             {/* Header */}
             <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Menu</h2>
