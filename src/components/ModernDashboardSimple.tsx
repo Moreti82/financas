@@ -82,22 +82,19 @@ export function ModernDashboardSimple() {
       ]);
 
       if (transactionsResult.error) {
-        console.error('Erro Transações:', transactionsResult.error);
         setDbError(`Erro Transações: ${transactionsResult.error.message}`);
       } else {
         setTransactions(transactionsResult.data || []);
       }
 
       if (categoriesResult.error) {
-        console.error('Erro Categorias:', categoriesResult.error);
         setDbError(`Erro Categorias: ${categoriesResult.error.message}`);
       } else {
         setCategories(categoriesResult.data || []);
       }
 
     } catch (error) {
-      console.error('Crash dashboard:', error);
-      setDbError('Erro ao carregar dados.');
+      setDbError('Erro crítico ao carregar dados.');
     } finally {
       setLoading(false);
     }
@@ -110,7 +107,7 @@ export function ModernDashboardSimple() {
 
   const handleExport = () => {
     if (transactions.length === 0) {
-      toast.info('Nada para exportar', 'Você ainda não possui transações.');
+      toast.info('Vazio', 'Sem dados para exportar.');
       return;
     }
 
@@ -123,39 +120,33 @@ export function ModernDashboardSimple() {
         t.type === 'income' ? 'Receita' : 'Despesa',
         Number(t.amount).toFixed(2)
       ]);
-      
-      const csvContent = [
-        headers.join(','), 
-        ...rows.map(row => row.join(','))
-      ].join('\n');
-      
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `financas_pro_export_${new Date().toISOString().split('T')[0]}.csv`);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `financas_export_${new Date().toISOString().split('T')[0]}.csv`;
       link.click();
-      toast.success('Sucesso!', 'Relatório baixado.');
-    } catch (err) {
-      toast.error('Erro ao exportar', 'Falha ao gerar arquivo.');
+      toast.success('Pronto!', 'Exportação concluída.');
+    } catch {
+      toast.error('Erro', 'Falha ao exportar.');
     }
   };
 
   const stats = {
-    totalIncome: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
-    totalExpense: transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0),
+    income: transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
+    expense: transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
     balance: 0,
-    savingsRate: 0
+    rate: 0
   };
 
-  stats.balance = stats.totalIncome - stats.totalExpense;
-  stats.savingsRate = stats.totalIncome > 0 ? (stats.balance / stats.totalIncome) * 100 : 0;
+  stats.balance = stats.income - stats.expense;
+  stats.rate = stats.income > 0 ? (stats.balance / stats.income) * 100 : 0;
 
   const expensesByCategory = transactions
     .filter(t => t.type === 'expense' && t.category)
     .reduce((acc, t) => {
-      const catName = t.category?.name || 'Outros';
-      acc[catName] = (acc[catName] || 0) + Number(t.amount);
+      acc[t.category!.name] = (acc[t.category!.name] || 0) + Number(t.amount);
       return acc;
     }, {} as Record<string, number>);
 
@@ -163,261 +154,123 @@ export function ModernDashboardSimple() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
 
-  const getCategoryIcon = (iconName: string) => {
-    const icons: Record<string, React.ReactNode> = {
-      'home': <Home className="w-4 h-4" />,
-      'car': <Car className="w-4 h-4" />,
-      'heart': <Heart className="w-4 h-4" />,
-      'gamepad-2': <Gamepad2 className="w-4 h-4" />,
-      'utensils': <Utensils className="w-4 h-4" />,
-      'shopping-cart': <ShoppingCart className="w-4 h-4" />,
-      'briefcase': <Briefcase className="w-4 h-4" />,
-      'laptop': <Laptop className="w-4 h-4" />,
-      'gift': <Gift className="w-4 h-4" />,
-      'wallet': <Wallet className="w-4 h-4" />,
-      'trending-up': <TrendingUp className="w-4 h-4" />
-    };
-    return icons[iconName] || <Wallet className="w-4 h-4" />;
+  const getCategoryIcon = (icon: string) => {
+    const icons: any = { home: Home, car: Car, heart: Heart, utensils: Utensils, briefcase: Briefcase, laptop: Laptop, gift: Gift, wallet: Wallet };
+    const Icon = icons[icon] || Wallet;
+    return <Icon className="w-4 h-4" />;
   };
 
-  const filteredTransactions = transactions.filter(t => 
-    (t.description?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (t.category?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filtered = transactions.filter(t => 
+    t.description?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    t.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Exibir todas no PRO ou as últimas 20 para fluidez
-  const recentTransactions = filteredTransactions.slice(0, 20);
-
-  if (loading) {
-    return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-slate-50'} flex items-center justify-center`}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin h-10 w-10 border-b-2 border-blue-600 rounded-full" /></div>;
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-950' : 'bg-slate-50'} transition-all duration-300 pb-20`}>
-      {/* Header */}
-      <header className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200'} sticky top-0 z-50 border-b shadow-sm backdrop-blur-md bg-opacity-80`}>
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <DollarSign className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>FinançasPro</h1>
-                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Painel Premium</p>
-              </div>
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-950' : 'bg-slate-50'} transition-colors duration-300 pb-20`}>
+      <header className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200'} sticky top-0 z-50 border-b shadow-sm`}>
+        <div className="max-w-[1700px] mx-auto px-4 lg:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20"><DollarSign className="text-white" /></div>
+            <div>
+              <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>FinançasPro</h1>
+              <p className="text-[10px] text-blue-500 font-black uppercase">Modo Pro Ativo</p>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-100 border-transparent'} rounded-lg border`}>
-                <Search className="w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Pesquisar..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`bg-transparent text-sm border-0 focus:outline-none ${darkMode ? 'text-white' : 'text-slate-700'}`}
-                />
-              </div>
-
-              <PlanButton currentTransactions={transactions.length} currentCategories={categories.length} darkMode={darkMode} />
-
-              <div className="h-6 w-[1px] bg-slate-200 dark:bg-gray-700 mx-2" />
-
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className={`p-2 transition-transform hover:scale-110 ${darkMode ? 'text-yellow-400' : 'text-slate-600'}`}
-              >
-                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-
-              {isAdmin && (
-                <button onClick={() => navigate('/admin')} className="p-2 text-purple-500 hover:scale-110 transition-transform">
-                  <Shield className="w-5 h-5" />
-                </button>
-              )}
-
-              <UserAvatar email={user?.email} size="md" />
-
-              <button onClick={() => signOut()} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <PlanButton currentTransactions={transactions.length} currentCategories={categories.length} darkMode={darkMode} />
+            <button onClick={() => setDarkMode(!darkMode)} className={darkMode ? 'text-yellow-400' : 'text-slate-600'}><Moon className="w-5 h-5" /></button>
+            {isAdmin && <Shield className="w-5 h-5 text-purple-500 cursor-pointer" onClick={() => navigate('/admin')} />}
+            <UserAvatar email={user?.email} size="md" />
+            <button onClick={() => signOut()} className="text-slate-400 hover:text-red-500"><LogOut className="w-5 h-5" /></button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full">
-        {dbError && (
-          <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-2xl flex items-center gap-3 text-red-600">
-            <AlertTriangle className="w-5 h-5" />
-            <p className="text-sm font-medium">{dbError}</p>
-          </div>
-        )}
+      <main className="max-w-[1700px] mx-auto px-4 lg:px-8 py-8">
+        {dbError && <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 rounded-xl">{dbError}</div>}
 
-        {/* Action Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => { setEditingTransaction(undefined); setShowForm(true); }}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 transition-all transform hover:-translate-y-1 flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="font-bold">Nova Transação</span>
-            </button>
-            <button
-              onClick={() => setShowCategories(true)}
-              className={`px-6 py-3 border ${darkMode ? 'bg-gray-900 border-gray-800 text-white hover:bg-gray-800' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'} rounded-xl shadow-sm transition-all transform hover:-translate-y-1 flex items-center gap-2`}
-            >
-              <FileText className="w-5 h-5 text-slate-400" />
-              <span className="font-bold">Categorias</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleExport}
-              className={`p-3 ${darkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} rounded-xl transition-all shadow-sm`}
-              title="Exportar CSV"
-            >
-              <Download className="w-5 h-5" />
-            </button>
-            <button className={`p-3 ${darkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} rounded-xl transition-all shadow-sm`}>
-              <Settings className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="flex gap-4 mb-8">
+          <button onClick={() => { setEditingTransaction(undefined); setShowForm(true); }} className="px-6 py-3 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2"><Plus className="w-5 h-5" /><span className="font-bold">Novo Lançamento</span></button>
+          <button onClick={() => setShowCategories(true)} className={`px-6 py-3 rounded-xl border ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-slate-700'} flex items-center gap-2`}><FileText className="w-5 h-5 text-slate-400" /><span className="font-bold">Categorias</span></button>
+          <button onClick={handleExport} className={`p-3 rounded-xl border ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-slate-700'}`}><Download className="w-5 h-5" /></button>
         </div>
 
-        {/* Main Grid: Responsive & No Height Caps */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          
-          {/* Left Area: 75% of width */}
-          <div className="lg:col-span-3 space-y-8 h-fit">
-            
-            {/* Stats Cards Dashboard Style */}
+          <div className="lg:col-span-3 space-y-8">
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
               {[
-                { title: 'Entradas', val: stats.totalIncome, icon: <TrendingUp />, color: 'text-green-500', bg: 'bg-green-500/10' },
-                { title: 'Saídas', val: stats.totalExpense, icon: <TrendingDown />, color: 'text-red-500', bg: 'bg-red-500/10' },
-                { title: 'Saldo', val: stats.balance, icon: <Wallet />, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                { title: 'Taxa Poupança', val: `${stats.savingsRate.toFixed(0)}%`, icon: <PiggyBank />, color: 'text-purple-500', bg: 'bg-purple-500/10' }
-              ].map((item, idx) => (
-                <div key={idx} className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-100'} p-6 rounded-2xl border shadow-sm`}>
-                  <div className={`w-10 h-10 ${item.bg} ${item.color} rounded-xl flex items-center justify-center mb-4`}>
-                    {item.icon}
-                  </div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-tighter mb-1">{item.title}</p>
-                  <h3 className={`text-xl font-black ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                    {typeof item.val === 'string' ? item.val : `R$ ${item.val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                  </h3>
+                { l: 'Entradas', v: stats.income, c: 'text-green-500', i: <TrendingUp /> },
+                { l: 'Saídas', v: stats.expense, c: 'text-red-500', i: <TrendingDown /> },
+                { l: 'Saldo', v: stats.balance, c: 'text-blue-500', i: <Wallet /> },
+                { l: 'Reserva', v: `${stats.rate.toFixed(1)}%`, i: <PiggyBank />, c: 'text-purple-500' }
+              ].map((s, idx) => (
+                <div key={idx} className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-100'} p-6 rounded-2xl border`}>
+                  <div className={`w-10 h-10 ${s.c} bg-current bg-opacity-10 rounded-xl flex items-center justify-center mb-3`}>{s.i}</div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase">{s.l}</p>
+                  <h3 className={`text-xl font-black ${darkMode ? 'text-white' : 'text-slate-900'}`}>{typeof s.v === 'string' ? s.v : `R$ ${s.v.toLocaleString('pt-BR')}`}</h3>
                 </div>
               ))}
             </div>
 
-            {/* Side-by-Side Charts (The most requested change) */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 h-fit">
-              {/* Monthly Chart */}
-              <div className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-100'} p-6 rounded-3xl border shadow-sm`}>
-                <div className="mb-6">
-                  <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Fluxo Mensal</h2>
-                  <p className="text-[11px] text-slate-500 uppercase">Receita vs Gastos</p>
-                </div>
-                <div className="h-[300px]">
-                  <MonthlyChart transactions={transactions} darkMode={darkMode} />
-                </div>
-              </div>
-
-              {/* Analytics: Top Categories */}
-              <div className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-100'} p-6 rounded-3xl border shadow-sm flex flex-col`}>
-                <div className="mb-6 flex items-center justify-between">
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <MonthlyChart transactions={transactions} darkMode={darkMode} />
+              
+              <div className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-100'} p-6 rounded-2xl border flex flex-col`}>
+                <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Divisão de Gastos</h2>
-                    <p className="text-[11px] text-slate-500 uppercase">Análise por Categoria</p>
+                    <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Maiores Despesas</h2>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase">Ranking por Categoria</p>
                   </div>
-                  <PieChart className="w-5 h-5 text-indigo-500" />
+                  <PieChart className="text-indigo-500" />
                 </div>
-                <div className="space-y-4 flex-1">
-                  {sortedCategories.length > 0 ? sortedCategories.map(([category, value]) => (
-                    <div key={category}>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className={`text-xs font-bold ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>{category}</span>
-                        <span className={`text-xs font-black ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                          R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
-                        <div 
-                          className="bg-indigo-500 h-full rounded-full transition-all duration-1000 ease-out" 
-                          style={{ width: `${(value / stats.totalExpense) * 100}%` }}
-                        />
+                <div className="space-y-5 flex-1 justify-center flex flex-col">
+                  {sortedCategories.map(([n, v]) => (
+                    <div key={n}>
+                      <div className="flex justify-between text-xs font-bold mb-1"><span className={darkMode ? 'text-gray-400' : 'text-slate-600'}>{n}</span><span className={darkMode ? 'text-white' : 'text-slate-900'}>R$ {v.toLocaleString()}</span></div>
+                      <div className="w-full bg-slate-100 dark:bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-indigo-500 h-full rounded-full" style={{ width: `${(v / stats.expense) * 100}%` }} />
                       </div>
                     </div>
-                  )) : (
-                    <div className="flex-1 flex items-center justify-center">
-                      <p className="text-xs text-slate-500 italic">Nenhum gasto registrado.</p>
-                    </div>
-                  )}
+                  ))}
+                  {sortedCategories.length === 0 && <p className="text-center text-xs text-slate-500 mt-4">Nenhuma despesa registrada.</p>}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Area: Recent Transactions (25% or Below on Mobile) */}
-          <div className="lg:col-span-1 h-fit">
+          <div className="lg:col-span-1">
             <div className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-100'} rounded-3xl border shadow-sm overflow-hidden flex flex-col h-full`}>
               <div className="p-6 border-b border-slate-50 dark:border-gray-800 flex items-center justify-between">
                 <div>
-                  <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Lançamentos</h2>
-                  <p className="text-[10px] text-blue-500 font-black uppercase">Exibindo {recentTransactions.length}</p>
+                  <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Extrato</h2>
+                  <p className="text-[10px] text-blue-500 font-bold uppercase">Últimos Lançamentos</p>
                 </div>
-                <div className="p-2 bg-blue-50 dark:bg-blue-500/10 text-blue-600 rounded-lg">
-                  <ArrowUpRight className="w-4 h-4" />
-                </div>
+                <ArrowUpRight className="text-blue-500" />
               </div>
-              <div className="divide-y divide-slate-50 dark:divide-gray-800 h-full min-h-[400px]">
-                {recentTransactions.map((t) => (
-                  <div 
-                    key={t.id} 
-                    className="p-4 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-gray-800/50 cursor-pointer transition-all group"
-                    onClick={() => handleEditTransaction(t)}
-                  >
+              <div className="divide-y divide-slate-50 dark:divide-gray-800">
+                {filtered.slice(0, 15).map(t => (
+                  <div key={t.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-800/50 cursor-pointer transition-all" onClick={() => handleEditTransaction(t)}>
                     <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl transition-transform group-hover:scale-110 ${t.type === 'income' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                        {getCategoryIcon(t.category?.icon || 'wallet')}
-                      </div>
+                      <div className={`p-2 rounded-xl ${t.type === 'income' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{getCategoryIcon(t.category?.icon || '')}</div>
                       <div className="min-w-0">
                         <p className={`font-bold text-xs ${darkMode ? 'text-white' : 'text-slate-800'} truncate`}>{t.description || t.category?.name}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">
-                          {t.category?.name} • {new Date(t.date).toLocaleDateString('pt-BR')}
-                        </p>
+                        <p className="text-[10px] text-slate-400">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-black text-xs ${t.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
-                        {t.type === 'income' ? '+' : '-'} {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
+                    <p className={`font-black text-xs ${t.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>{Number(t.amount).toLocaleString('pt-BR')}</p>
                   </div>
                 ))}
-                {recentTransactions.length === 0 && (
-                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-slate-400">
-                    <Search className="w-8 h-8 opacity-20 mb-2" />
-                    <p className="text-xs">Vazio</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>
-
         </div>
       </main>
 
-      {/* Modals remain the same but cleaner */}
-      <Modal isOpen={showForm} onClose={() => { setShowForm(false); setEditingTransaction(undefined); }} title={editingTransaction ? "Editar" : "Novo"} size="md">
+      <Modal isOpen={showForm} onClose={() => { setShowForm(false); setEditingTransaction(undefined); }} title="Transação" size="md">
         <TransactionFormModal onClose={() => { setShowForm(false); setEditingTransaction(undefined); }} onSuccess={() => { setShowForm(false); loadData(); }} categories={categories} editingTransaction={editingTransaction} currentCount={transactions.length} />
       </Modal>
 
