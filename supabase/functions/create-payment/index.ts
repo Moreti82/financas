@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,40 +13,41 @@ const PLAN_PRICES: Record<string, { title: string; amount: number; months: numbe
 };
 
 Deno.serve(async (req) => {
+  // CORS check
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  console.log('=== create-payment invoked ===');
-
   try {
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Get Auth Token
     const authHeader = req.headers.get('Authorization');
-    console.log('Auth header present:', !!authHeader);
-    if (!authHeader) throw new Error('Não autorizado');
+    if (!authHeader) throw new Error('Não autorizado (sem token)');
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
-    console.log('User found:', !!user, 'Auth error:', authError?.message);
-    if (authError || !user) throw new Error('Usuário não encontrado');
+    if (authError || !user) throw new Error('Usuário não encontrado ou sessão expirada');
 
-    const { planId } = await req.json();
-    console.log('Plan ID:', planId);
+    // Get JSON body
+    const body = await req.json().catch(() => ({}));
+    const { planId } = body;
+    
+    if (!planId) throw new Error('planId não informado');
+    
     const plan = PLAN_PRICES[planId];
     if (!plan) throw new Error('Plano inválido: ' + planId);
 
     const mpAccessToken = Deno.env.get('MP_ACCESS_TOKEN');
-    console.log('MP Token present:', !!mpAccessToken);
-    if (!mpAccessToken) throw new Error('Mercado Pago não configurado');
+    if (!mpAccessToken) throw new Error('Mercado Pago não configurado (MP_ACCESS_TOKEN faltando)');
 
     const appUrl = Deno.env.get('APP_URL') || 'https://financas.vercel.app';
 
-    // Criar preferência no Mercado Pago
+    // Create MP Preference
     const mpBody = {
       items: [{
         id: planId,
@@ -83,8 +84,8 @@ Deno.serve(async (req) => {
     });
 
     if (!mpRes.ok) {
-      const err = await mpRes.text();
-      throw new Error(`Mercado Pago: ${err}`);
+      const errText = await mpRes.text();
+      throw new Error(`Mercado Pago: ${errText}`);
     }
 
     const mpData = await mpRes.json();
@@ -93,15 +94,16 @@ Deno.serve(async (req) => {
       checkoutUrl: mpData.init_point,
       preferenceId: mpData.id,
     }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (err: any) {
-    console.error('create-payment error:', err.message);
-    // Sempre retorna 200 para o Supabase SDK conseguir ler o corpo do erro
+    console.error('Error:', err.message);
     return new Response(JSON.stringify({ error: err.message }), {
-      status: 200,
+      status: 200, // Retorna 200 para o Supabase Client ler o corpo do erro
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
+
