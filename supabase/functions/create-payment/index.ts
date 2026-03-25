@@ -1,5 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,10 +12,12 @@ const PLAN_PRICES: Record<string, { title: string; amount: number; months: numbe
   enterprise_yearly: { title: 'FinançasPro - Plano Enterprise Anual', amount: 299.00, months: 12 },
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  console.log('=== create-payment invoked ===');
 
   try {
     const supabase = createClient(
@@ -24,20 +25,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Autenticar usuário
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
     if (!authHeader) throw new Error('Não autorizado');
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
+    console.log('User found:', !!user, 'Auth error:', authError?.message);
     if (authError || !user) throw new Error('Usuário não encontrado');
 
     const { planId } = await req.json();
+    console.log('Plan ID:', planId);
     const plan = PLAN_PRICES[planId];
-    if (!plan) throw new Error('Plano inválido');
+    if (!plan) throw new Error('Plano inválido: ' + planId);
 
     const mpAccessToken = Deno.env.get('MP_ACCESS_TOKEN');
+    console.log('MP Token present:', !!mpAccessToken);
     if (!mpAccessToken) throw new Error('Mercado Pago não configurado');
 
     const appUrl = Deno.env.get('APP_URL') || 'https://financas.vercel.app';
@@ -86,15 +90,17 @@ serve(async (req) => {
     const mpData = await mpRes.json();
 
     return new Response(JSON.stringify({
-      checkoutUrl: mpData.init_point, // URL de pagamento
+      checkoutUrl: mpData.init_point,
       preferenceId: mpData.id,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (err: any) {
+    console.error('create-payment error:', err.message);
+    // Sempre retorna 200 para o Supabase SDK conseguir ler o corpo do erro
     return new Response(JSON.stringify({ error: err.message }), {
-      status: 400,
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
