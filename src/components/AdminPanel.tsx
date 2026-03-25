@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, Settings, Crown, Shield, Star, Trash2, ArrowLeft, Home, Moon, Sun, AlertTriangle, Calendar, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../hooks/useToast';
@@ -24,29 +24,9 @@ export function AdminPanel() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  // Auto-downgrade logic: if plan is expired and still paid, reset to free
-  const checkAndDowngradeExpired = useCallback(async (profiles: any[]) => {
-    const now = new Date();
-    const toDowngrade = profiles.filter(p => {
-      if (p.plan === 'free') return false;
-      if (!p.plan_expires_at) return false;
-      return new Date(p.plan_expires_at) < now;
-    });
 
-    for (const p of toDowngrade) {
-      await supabase
-        .from('user_profiles')
-        .update({ plan: 'free' })
-        .eq('user_id', p.user_id);
-      p.plan = 'free'; // update local state too
-    }
 
-    if (toDowngrade.length > 0) {
-      toast.info('Auto-Downgrade', `${toDowngrade.length} usuário(s) revertido(s) para Free por vencimento.`);
-    }
-  }, [toast]);
-
-  const loadRealData = useCallback(async () => {
+  const loadRealData = async () => {
     setLoading(true);
     try {
       const { data: profiles, error: profileErr } = await supabase
@@ -59,7 +39,14 @@ export function AdminPanel() {
       }
 
       if (profiles) {
-        await checkAndDowngradeExpired(profiles);
+        // Auto-downgrade expired paid plans
+        const now = new Date();
+        for (const p of profiles) {
+          if (p.plan !== 'free' && p.plan_expires_at && new Date(p.plan_expires_at) < now) {
+            await supabase.from('user_profiles').update({ plan: 'free' }).eq('user_id', p.user_id);
+            p.plan = 'free';
+          }
+        }
 
         const formattedData: AdminSubscriptionView[] = profiles.map((p: any) => ({
           user_id: p.user_id,
@@ -78,9 +65,9 @@ export function AdminPanel() {
     } finally {
       setLoading(false);
     }
-  }, [checkAndDowngradeExpired, toast]);
+  };
 
-  useEffect(() => { loadRealData(); }, [loadRealData]);
+  useEffect(() => { loadRealData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let filtered = allSubscriptions;
