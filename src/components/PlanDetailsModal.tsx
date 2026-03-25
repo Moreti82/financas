@@ -1,5 +1,6 @@
-import { Crown, TrendingUp, Check, X, AlertCircle } from 'lucide-react';
+import { Crown, TrendingUp, Check, X, Star } from 'lucide-react';
 import { Modal } from './Modal';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface PlanDetailsModalProps {
   isOpen: boolean;
@@ -8,23 +9,17 @@ interface PlanDetailsModalProps {
   currentCategories: number;
 }
 
-// Mock limits temporários
-const MOCK_LIMITS = {
-  transactions: 10,
-  categories: 3
-};
-
 export function PlanDetailsModal({ isOpen, onClose, currentTransactions, currentCategories }: PlanDetailsModalProps) {
-  // Valores mockados temporários
-  const currentPlan: 'free' | 'pro' | 'enterprise' = 'free';
-  const transactionLimit = MOCK_LIMITS.transactions;
-  const categoryLimit = MOCK_LIMITS.categories;
+  const { currentPlan, limits, isPro } = useSubscription();
   
-  const transactionUsage = (currentTransactions / transactionLimit) * 100;
-  const categoryUsage = (currentCategories / categoryLimit) * 100;
+  const transactionLimit = limits.transactions;
+  const categoryLimit = limits.categories;
+  
+  const transactionUsage = transactionLimit === Infinity ? 0 : (currentTransactions / transactionLimit) * 100;
+  const categoryUsage = categoryLimit === Infinity ? 0 : (currentCategories / categoryLimit) * 100;
 
-  const isNearLimit = transactionUsage >= 80 || categoryUsage >= 80;
-  const isAtLimit = currentTransactions >= transactionLimit || currentCategories >= categoryLimit;
+  const isAtLimit = (transactionLimit !== Infinity && currentTransactions >= transactionLimit) || 
+                    (categoryLimit !== Infinity && currentCategories >= categoryLimit);
 
   const getUsageColor = (usage: number) => {
     if (usage >= 100) return 'bg-red-500';
@@ -58,58 +53,80 @@ export function PlanDetailsModal({ isOpen, onClose, currentTransactions, current
                 <TrendingUp className="w-4 h-4" />
                 <span className="font-medium">Plano Free</span>
               </>
-            ) : (
+            ) : isPro ? (
               <>
                 <Crown className="w-4 h-4" />
-                <span className="font-medium">Plano {currentPlan === 'pro' ? 'Pro' : 'Enterprise'}</span>
+                <span className="font-medium">Plano Pro</span>
+              </>
+            ) : (
+              <>
+                <Star className="w-4 h-4" />
+                <span className="font-medium">Plano Enterprise</span>
               </>
             )}
           </div>
         </div>
 
-        {/* Usage Stats */}
-        {currentPlan === 'free' && (
+        {/* Usage Stats (Show only if not unlimited) */}
+        {(transactionLimit !== Infinity || categoryLimit !== Infinity) && (
           <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Transações</span>
-                <span className={`text-sm font-bold ${getUsageTextColor(transactionUsage)}`}>
-                  {currentTransactions}/{transactionLimit}
-                </span>
+            {transactionLimit !== Infinity && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Transações</span>
+                  <span className={`text-sm font-bold ${getUsageTextColor(transactionUsage)}`}>
+                    {currentTransactions}/{transactionLimit}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-500 ${getUsageColor(transactionUsage)}`}
+                    style={{ width: `${Math.min(transactionUsage, 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {transactionUsage.toFixed(0)}% utilizado
+                </p>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-500 ${getUsageColor(transactionUsage)}`}
-                  style={{ width: `${Math.min(transactionUsage, 100)}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {transactionUsage.toFixed(0)}% utilizado
-              </p>
-            </div>
+            )}
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Categorias</span>
-                <span className={`text-sm font-bold ${getUsageTextColor(categoryUsage)}`}>
-                  {currentCategories}/{categoryLimit}
-                </span>
+            {categoryLimit !== Infinity && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Categorias</span>
+                  <span className={`text-sm font-bold ${getUsageTextColor(categoryUsage)}`}>
+                    {currentCategories}/{categoryLimit}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-500 ${getUsageColor(categoryUsage)}`}
+                    style={{ width: `${Math.min(categoryUsage, 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {categoryUsage.toFixed(0)}% utilizado
+                </p>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-500 ${getUsageColor(categoryUsage)}`}
-                  style={{ width: `${Math.min(categoryUsage, 100)}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {categoryUsage.toFixed(0)}% utilizado
-              </p>
-            </div>
+            )}
           </div>
         )}
 
-        {/* Warning Messages */}
-        {isAtLimit && (
+        {/* Success message if unlimited */}
+        {(transactionLimit === Infinity && categoryLimit === Infinity) && (
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+            <Crown className="w-8 h-8 text-green-600 dark:text-green-400 mx-auto mb-2" />
+            <p className="text-sm font-medium text-green-800 dark:text-green-200">
+              Uso Ilimitado Ativado!
+            </p>
+            <p className="text-xs text-green-600 dark:text-green-300 mt-1">
+              Seu plano atual não possui restrições de transações ou categorias.
+            </p>
+          </div>
+        )}
+
+        {/* Warning Messages (Free only) */}
+        {currentPlan === 'free' && isAtLimit && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
             <div className="flex items-start gap-2">
               <X className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
@@ -125,82 +142,31 @@ export function PlanDetailsModal({ isOpen, onClose, currentTransactions, current
           </div>
         )}
 
-        {isNearLimit && !isAtLimit && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                  Próximo dos limites
-                </p>
-                <p className="text-xs text-amber-600 dark:text-amber-300 mt-1">
-                  Você está usando mais de 80% dos limites do plano Free.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Plan Comparison */}
         <div className="space-y-3">
           <h3 className="font-semibold text-gray-900 dark:text-white">Comparação de Planos</h3>
           
           <div className="space-y-2">
-            {/* Free Plan */}
-            <div className={`border rounded-lg p-3 ${
-              currentPlan === 'free' 
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400' 
-                : 'border-gray-200 dark:border-gray-700'
-            }`}>
+            <div className={`border rounded-lg p-3 ${currentPlan === 'free' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                  <span className="font-medium text-gray-900 dark:text-white">Free</span>
-                </div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">Grátis</span>
+                <span className="font-medium text-gray-900 dark:text-white text-sm">Free</span>
+                <span className="text-xs font-bold text-gray-500">Grátis</span>
               </div>
-              <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                <li className="flex items-center gap-1">
-                  <Check className="w-3 h-3 text-green-500" />
-                  {transactionLimit} transações/mês
-                </li>
-                <li className="flex items-center gap-1">
-                  <Check className="w-3 h-3 text-green-500" />
-                  {categoryLimit} categorias
-                </li>
-                <li className="flex items-center gap-1">
-                  <Check className="w-3 h-3 text-green-500" />
-                  Dashboard básico
-                </li>
+              <ul className="space-y-1 text-[11px] text-gray-600 dark:text-gray-400">
+                <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> 10 transações e 3 categorias</li>
               </ul>
             </div>
 
-            {/* Pro Plan */}
-            <div className="border rounded-lg p-3 border-gray-200 dark:border-gray-700">
+            <div className={`border rounded-lg p-3 ${currentPlan === 'pro' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Crown className="w-4 h-4 text-blue-500" />
-                  <span className="font-medium text-gray-900 dark:text-white">Pro</span>
+                  <span className="font-medium text-gray-900 dark:text-white text-sm">Pro</span>
                 </div>
-                <span className="text-sm font-bold text-gray-900 dark:text-white">R$ 5,00/mês</span>
+                <span className="text-xs font-bold text-blue-600">R$ 5,00/mês</span>
               </div>
-              <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                <li className="flex items-center gap-1">
-                  <Check className="w-3 h-3 text-green-500" />
-                  Transações ilimitadas
-                </li>
-                <li className="flex items-center gap-1">
-                  <Check className="w-3 h-3 text-green-500" />
-                  Categorias ilimitadas
-                </li>
-                <li className="flex items-center gap-1">
-                  <Check className="w-3 h-3 text-green-500" />
-                  Relatórios avançados
-                </li>
-                <li className="flex items-center gap-1">
-                  <Check className="w-3 h-3 text-green-500" />
-                  Exportação de dados
-                </li>
+              <ul className="space-y-1 text-[11px] text-gray-600 dark:text-gray-400">
+                <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> Transações e categorias ilimitadas</li>
               </ul>
             </div>
           </div>
@@ -216,10 +182,7 @@ export function PlanDetailsModal({ isOpen, onClose, currentTransactions, current
           </button>
           {currentPlan === 'free' && (
             <button
-              onClick={() => {
-                // Redirecionar para página de pricing
-                window.location.href = '/pricing';
-              }}
+              onClick={() => window.location.href = '/pricing'}
               className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-all hover:shadow-lg flex items-center justify-center gap-2"
             >
               <Crown className="w-4 h-4" />

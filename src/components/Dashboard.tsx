@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { useSubscription } from '../hooks/useSubscription';
 import { supabase } from '../lib/supabase';
 import type { Category, TransactionWithCategory } from '../types/database';
 import { LogOut, Plus, TrendingUp, TrendingDown, Wallet, Settings, Shield } from 'lucide-react';
