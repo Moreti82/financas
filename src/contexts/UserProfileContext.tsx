@@ -86,6 +86,8 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
         .from('user_profiles')
         .upsert({
           user_id: user.id,
+          email: user.email, // Garantir que o email nunca seja nulo
+          role: userProfile?.role || 'user', // Garantir que o papel não se perca
           ...updates,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' })
