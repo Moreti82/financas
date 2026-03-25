@@ -44,13 +44,7 @@ import { MonthlyChart } from './MonthlyChart';
 import { useToast } from '../hooks/useToast';
 import { useSubscription } from '../hooks/useSubscription';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
-import { UserOptions } from 'jspdf-autotable';
-
-// Extend jsPDF type to include autoTable
-interface jsPDFWithAutoTable extends jsPDF {
-  autoTable: (options: UserOptions) => jsPDF;
-}
+import autoTable from 'jspdf-autotable';
 
 export function ModernDashboardSimple() {
   const { user, signOut } = useAuth();
@@ -121,7 +115,7 @@ export function ModernDashboardSimple() {
     }
 
     try {
-      const doc = new jsPDF() as jsPDFWithAutoTable;
+      const doc = new jsPDF();
       const themeColor: [number, number, number] = [79, 70, 229];
       
       // Header
@@ -166,7 +160,7 @@ export function ModernDashboardSimple() {
         `R$ ${Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
       ]);
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: 100,
         head: [['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor']],
         body: tableData,
