@@ -1,10 +1,43 @@
 import { useState } from 'react';
 import { Crown, Star, Check, X, ArrowRight, Shield } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
+import { useUserProfile } from '../hooks/useUserProfile';
+import { useToast } from '../hooks/useToast';
+import { useNavigate } from 'react-router-dom';
 
 export function PricingPage() {
-  const { currentPlan } = useSubscription();
+  const { currentPlan, refreshSubscription } = useSubscription();
+  const { updateProfile } = useUserProfile();
+  const toast = useToast();
+  const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [upgradingTo, setUpgradingTo] = useState<string | null>(null);
+
+  const handleUpgrade = async (planId: string) => {
+    if (planId === 'free') return;
+    
+    setUpgradingTo(planId);
+    
+    // Simular processamento de pagamento
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    try {
+      await updateProfile({ plan: planId as any });
+      await refreshSubscription();
+      
+      toast.success(
+        `Parabéns! Bem-vindo ao Plano ${planId.toUpperCase()}! 🚀`,
+        'Seu pagamento simulado foi processado com sucesso. Todos os limites foram removidos.'
+      );
+      
+      navigate('/');
+    } catch (error) {
+      console.error('Erro no upgrade:', error);
+      toast.error('Erro ao processar assinatura', 'Não foi possível atualizar seu plano no momento.');
+    } finally {
+      setUpgradingTo(null);
+    }
+  };
 
   const plans = [
     {
@@ -24,7 +57,7 @@ export function PricingPage() {
         { text: 'API para desenvolvedores', included: false },
         { text: 'Suporte por email', included: true }
       ],
-      cta: currentPlan === 'free' ? 'Plano Atual' : 'Começar Gratis'
+      cta: currentPlan === 'free' ? 'Plano Atual' : 'Plano Grátis'
     },
     {
       id: 'pro',
@@ -65,7 +98,7 @@ export function PricingPage() {
         { text: 'Suporte dedicado', included: true },
         { text: 'Treinamento da equipe', included: true }
       ],
-      cta: currentPlan === 'enterprise' ? 'Plano Atual' : 'Falar com Vendas'
+      cta: currentPlan === 'enterprise' ? 'Plano Atual' : 'Assinar Enterprise'
     }
   ];
 
@@ -185,23 +218,29 @@ export function PricingPage() {
                 </div>
 
                 <button
-                  className={`w-full py-3 px-4 rounded-lg font-medium transition-colors mb-6 ${
+                  onClick={() => handleUpgrade(plan.id)}
+                  disabled={isCurrentPlan || upgradingTo !== null}
+                  className={`w-full py-3 px-4 rounded-lg font-medium transition-all transform active:scale-95 flex items-center justify-center gap-2 ${
                     isCurrentPlan
                       ? 'bg-slate-100 text-slate-500 cursor-not-allowed'
                       : getButtonColor(plan.color, plan.popular)
                   }`}
-                  disabled={isCurrentPlan}
                 >
-                  {isCurrentPlan ? (
-                    <span className="flex items-center justify-center gap-2">
+                  {upgradingTo === plan.id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Processando...
+                    </>
+                  ) : isCurrentPlan ? (
+                    <>
                       <Check className="w-4 h-4" />
                       {plan.cta}
-                    </span>
+                    </>
                   ) : (
-                    <span className="flex items-center justify-center gap-2">
+                    <>
                       {plan.cta}
                       <ArrowRight className="w-4 h-4" />
-                    </span>
+                    </>
                   )}
                 </button>
 
@@ -249,6 +288,25 @@ export function PricingPage() {
           </div>
         </div>
       </div>
+      {/* Checkout Overlay */}
+      {upgradingTo && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl text-center animate-in fade-in zoom-in duration-300">
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Shield className="w-10 h-10 text-blue-600 animate-pulse" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Processando Assinatura</h2>
+            <p className="text-slate-600 mb-6">Estamos conectando com o gateway de pagamento seguro para finalizar seu upgrade...</p>
+            <div className="flex justify-center">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
