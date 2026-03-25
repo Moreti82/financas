@@ -10,15 +10,12 @@ import {
   DollarSign, 
   PiggyBank, 
   Search,
-  Bell,
   Moon,
   Sun,
   Download,
   Plus,
   ArrowUpRight,
-  ArrowDownRight,
   Wallet,
-  ShoppingCart,
   Home,
   Car,
   Heart,
@@ -31,7 +28,7 @@ import {
   LogOut,
   FileText,
   PieChart,
-  Settings,
+  AlertTriangle,
   Star as StarIcon,
   Crown
 } from 'lucide-react';
@@ -141,9 +138,13 @@ export function ModernDashboardSimple() {
 
   const sortedCategories = Object.entries(expensesByCategory).sort(([, a], [, b]) => b - a).slice(0, 5);
 
-  const getCategoryIcon = (icon: string) => {
-    const icons: any = { home: Home, car: Car, heart: Heart, utensils: Utensils, briefcase: Briefcase, laptop: Laptop, gift: Gift, wallet: Wallet };
-    const Icon = icons[icon] || Wallet;
+  const getCategoryIcon = (iconName: string) => {
+    const icons: any = { 
+      home: Home, car: Car, heart: Heart, utensils: Utensils, 
+      briefcase: Briefcase, laptop: Laptop, gift: Gift, 
+      wallet: Wallet, 'gamepad-2': Gamepad2 
+    };
+    const Icon = icons[iconName] || Wallet;
     return <Icon className="w-4 h-4" />;
   };
 
@@ -153,7 +154,6 @@ export function ModernDashboardSimple() {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-950' : 'bg-slate-100'} transition-all duration-300 pb-20`}>
-      {/* Background Decor */}
       <div className={`fixed top-0 left-0 w-full h-1/2 bg-gradient-to-b ${darkMode ? 'from-indigo-950/20' : 'from-indigo-100/50'} pointer-events-none -z-10`} />
 
       <header className={`${darkMode ? 'bg-gray-900/80 border-gray-800' : 'bg-white/90 border-slate-200'} sticky top-0 z-50 border-b backdrop-blur-xl shadow-sm`}>
@@ -174,19 +174,14 @@ export function ModernDashboardSimple() {
               </div>
             </div>
           </div>
-          
           <div className="flex items-center gap-4">
             <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-slate-200/50 border-slate-300/30'} rounded-xl border`}>
               <Search className="w-4 h-4 text-slate-400" />
               <input type="text" placeholder="Pesquisar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`bg-transparent text-sm border-0 focus:outline-none ${darkMode ? 'text-white' : 'text-slate-700'}`} />
             </div>
-            
             <PlanButton currentTransactions={transactions.length} currentCategories={categories.length} darkMode={darkMode} />
-            
             <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-xl border transition-all hover:scale-110 ${darkMode ? 'bg-gray-800 border-gray-700 text-yellow-400' : 'bg-white border-slate-200 text-slate-600 shadow-sm'}`}><Moon className="w-5 h-5" /></button>
-            
             <div className="h-6 w-[1px] bg-slate-200 dark:bg-gray-700 mx-1" />
-            
             <div className="flex items-center gap-3 pl-2">
               <UserAvatar email={user?.email} size="md" />
               <button onClick={() => signOut()} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><LogOut className="w-5 h-5" /></button>
@@ -197,7 +192,6 @@ export function ModernDashboardSimple() {
 
       <main className="max-w-[1700px] mx-auto px-4 lg:px-8 py-10">
         {dbError && <div className="mb-8 p-4 bg-red-500 text-white rounded-2xl flex items-center gap-3 shadow-xl"><AlertTriangle /> {dbError}</div>}
-
         <div className="flex flex-wrap items-center justify-between gap-6 mb-10">
           <div className="flex flex-wrap gap-4">
             <button onClick={() => { setEditingTransaction(undefined); setShowForm(true); }} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-600/30 hover:bg-indigo-700 hover:shadow-indigo-600/40 transition-all font-bold flex items-center gap-2 transform active:scale-95"><Plus /> Novo Lançamento</button>
@@ -212,7 +206,6 @@ export function ModernDashboardSimple() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
           <div className="lg:col-span-3 space-y-10">
-            {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
               {[
                 { l: 'Entradas', v: stats.income, c: 'text-emerald-500', i: <TrendingUp />, g: 'from-emerald-500/20' },
@@ -229,10 +222,8 @@ export function ModernDashboardSimple() {
               ))}
             </div>
 
-            {/* Charts */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 h-fit">
               <MonthlyChart transactions={transactions} darkMode={darkMode} />
-              
               <div className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white/80 border-slate-100'} p-8 rounded-[32px] border shadow-xl flex flex-col backdrop-blur-sm`}>
                 <div className="flex justify-between items-center mb-8">
                   <div>
