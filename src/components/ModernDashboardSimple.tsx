@@ -30,7 +30,10 @@ import {
   PieChart,
   AlertTriangle,
   Star as StarIcon,
-  Crown
+  Crown,
+  Calendar,
+  Filter,
+  FileDown
 } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import { PlanButton } from './PlanButton';
@@ -40,6 +43,8 @@ import { CategoryFormModal } from './CategoryFormModal';
 import { MonthlyChart } from './MonthlyChart';
 import { useToast } from '../hooks/useToast';
 import { useSubscription } from '../hooks/useSubscription';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export function ModernDashboardSimple() {
   const { user, signOut } = useAuth();
@@ -57,6 +62,11 @@ export function ModernDashboardSimple() {
   const [darkMode, setDarkMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dbError, setDbError] = useState<string | null>(null);
+
+  // Advanced Filters
+  const [filterMonth, setFilterMonth] = useState<number>(new Date().getMonth());
+  const [filterYear, setFilterYear] = useState<number>(new Date().getFullYear());
+  const [filterCategory, setFilterCategory] = useState<string>('all');
 
   useEffect(() => {
     loadData();
@@ -98,13 +108,80 @@ export function ModernDashboardSimple() {
     setShowForm(true);
   };
 
-  const handleExport = () => {
-    if (transactions.length === 0) {
-      toast.info('Vazio', 'Nada para exportar.');
+  const handleExportPDF = () => {
+    if (finalFiltered.length === 0) {
+      toast.info('Vazio', 'Sem dados no filtro para gerar PDF.');
       return;
     }
+
+    try {
+      const doc = new jsPDF() as any;
+      const themeColor = [79, 70, 229]; // Indigo-600 logic
+      
+      // Header
+      doc.setFillColor(themeColor[0], themeColor[1], themeColor[2]);
+      doc.rect(0, 0, 210, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FinançasPro - Relatório', 15, 25);
+      
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 155, 30);
+
+      // Info
+      doc.setTextColor(50, 50, 50);
+      doc.setFontSize(14);
+      const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+      doc.text(`Período: ${monthNames[filterMonth]} / ${filterYear}`, 15, 55);
+      doc.text(`Usuário: ${user?.email || 'N/A'}`, 15, 62);
+
+      // Totals in boxes
+      doc.setDrawColor(230, 230, 230);
+      doc.line(15, 70, 195, 70);
+
+      const income = finalFiltered.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+      const expense = finalFiltered.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+      
+      doc.setFontSize(12);
+      doc.text(`Total Receitas: R$ ${income.toLocaleString('pt-BR')}`, 15, 80);
+      doc.setTextColor(200, 0, 0);
+      doc.text(`Total Despesas: R$ ${expense.toLocaleString('pt-BR')}`, 100, 80);
+      doc.setTextColor(themeColor[0], themeColor[1], themeColor[2]);
+      doc.text(`Saldo: R$ ${(income - expense).toLocaleString('pt-BR')}`, 15, 88);
+
+      // Table
+      const tableData = finalFiltered.map(t => [
+        new Date(t.date).toLocaleDateString('pt-BR'),
+        t.description || t.category?.name || 'S/D',
+        t.category?.name || 'S/C',
+        t.type === 'income' ? 'Entrada' : 'Saída',
+        `R$ ${Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+      ]);
+
+      doc.autoTable({
+        startY: 100,
+        head: [['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: themeColor, fontSize: 11, fontStyle: 'bold' },
+        styles: { fontSize: 9, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [245, 247, 250] }
+      });
+
+      doc.save(`relatorio_financas_${monthNames[filterMonth].toLowerCase()}_${filterYear}.pdf`);
+      toast.success('Sucesso!', 'Relatório PDF gerado e baixado.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro', 'Falha ao gerar PDF.');
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (finalFiltered.length === 0) return;
     const headers = ['Data', 'Descricao', 'Categoria', 'Tipo', 'Valor'];
-    const rows = transactions.map(t => [
+    const rows = finalFiltered.map(t => [
       new Date(t.date).toLocaleDateString('pt-BR'),
       t.description || '',
       t.category?.name || 'Sem categoria',
@@ -117,19 +194,33 @@ export function ModernDashboardSimple() {
     link.href = URL.createObjectURL(blob);
     link.download = `financas_pro_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
-    toast.success('Pronto!', 'Exportação de dados Pro realizada.');
+    toast.success('Pronto!', 'Exportação CSV realizada.');
   };
 
+  // 1. First Pass: Date Filter (used for MonthlyChart and Base stats)
+  const dateFiltered = transactions.filter(t => {
+    const d = new Date(t.date + 'T00:00:00');
+    return d.getMonth() === filterMonth && d.getFullYear() === filterYear;
+  });
+
+  // 2. Second Pass: Search & Category Filter
+  const finalFiltered = dateFiltered.filter(t => {
+    const matchesSearch = t.description?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          t.category?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || t.category_id === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   const stats = {
-    income: transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
-    expense: transactions.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
+    income: finalFiltered.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
+    expense: finalFiltered.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
     balance: 0, 
     rate: 0
   };
   stats.balance = stats.income - stats.expense;
   stats.rate = stats.income > 0 ? (stats.balance / stats.income) * 100 : 0;
 
-  const expensesByCategory = transactions
+  const expensesByCategory = finalFiltered
     .filter(t => t.type === 'expense' && t.category)
     .reduce((acc, t) => {
       acc[t.category!.name] = (acc[t.category!.name] || 0) + Number(t.amount);
@@ -139,19 +230,10 @@ export function ModernDashboardSimple() {
   const sortedCategories = Object.entries(expensesByCategory).sort(([, a], [, b]) => b - a).slice(0, 5);
 
   const getCategoryIcon = (iconName: string) => {
-    const icons: any = { 
-      home: Home, car: Car, heart: Heart, utensils: Utensils, 
-      briefcase: Briefcase, laptop: Laptop, gift: Gift, 
-      wallet: Wallet, 'gamepad-2': Gamepad2 
-    };
+    const icons: any = { home: Home, car: Car, heart: Heart, utensils: Utensils, briefcase: Briefcase, laptop: Laptop, gift: Gift, wallet: Wallet, 'gamepad-2': Gamepad2 };
     const Icon = icons[iconName] || Wallet;
     return <Icon className="w-4 h-4" />;
   };
-
-  const filtered = transactions.filter(t => 
-    t.description?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900"><div className="animate-spin h-8 w-8 border-b-2 border-white rounded-full" /></div>;
 
@@ -183,26 +265,8 @@ export function ModernDashboardSimple() {
               <input type="text" placeholder="Pesquisar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`bg-transparent text-sm border-0 focus:outline-none ${darkMode ? 'text-white' : 'text-slate-700'}`} />
             </div>
             <PlanButton currentTransactions={transactions.length} currentCategories={categories.length} darkMode={darkMode} />
-            <button 
-              onClick={() => setDarkMode(!darkMode)} 
-              className={`p-2 rounded-xl border transition-all hover:scale-110 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200 text-slate-600 shadow-sm'}`} 
-              title="Alternar Tema"
-            >
-              {darkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5" />}
-            </button>
-            
-            {isAdmin && (
-              <button 
-                onClick={() => navigate('/admin')} 
-                className="p-2 rounded-xl border border-transparent hover:bg-purple-500/10 text-purple-500 transition-all hover:scale-110"
-                title="Painel Admin"
-              >
-                <Shield className="w-5 h-5" />
-              </button>
-            )}
-            
+            <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-xl border transition-all hover:scale-110 ${darkMode ? 'bg-gray-800 border-gray-700 text-yellow-400' : 'bg-white border-slate-200 text-slate-600 shadow-sm'}`} title="Alternar Tema">{darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}</button>
             <div className="h-6 w-[1px] bg-slate-200 dark:bg-gray-700 mx-1" />
-            
             <div className="flex items-center gap-3 pl-2">
               <UserAvatar email={user?.email} size="md" />
               <button onClick={() => signOut()} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Sair"><LogOut className="w-5 h-5" /></button>
@@ -213,15 +277,49 @@ export function ModernDashboardSimple() {
 
       <main className="max-w-[1700px] mx-auto px-4 lg:px-8 py-10">
         {dbError && <div className="mb-8 p-4 bg-red-600 text-white rounded-2xl flex items-center gap-3 shadow-xl"><AlertTriangle /> {dbError}</div>}
-        <div className="flex flex-wrap items-center justify-between gap-6 mb-10">
+
+        {/* Action & Filter Bar */}
+        <div className="flex flex-wrap items-end justify-between gap-6 mb-10">
           <div className="flex flex-wrap gap-4">
             <button onClick={() => { setEditingTransaction(undefined); setShowForm(true); }} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-600/30 hover:bg-indigo-700 hover:shadow-indigo-600/40 transition-all font-bold flex items-center gap-2 transform active:scale-95"><Plus /> Novo Lançamento</button>
             <button onClick={() => setShowCategories(true)} className={`px-6 py-4 rounded-2xl border ${darkMode ? 'bg-gray-900 border-gray-800 text-white hover:bg-gray-800' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'} shadow-sm transition-all font-bold flex items-center gap-2`}><FileText className="text-slate-400" /> Categorias</button>
-            <button onClick={handleExport} className={`p-4 rounded-2xl border ${darkMode ? 'bg-gray-900 border-gray-800 text-white hover:bg-gray-800' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'} shadow-sm transition-all`} title="Exportar dados Pro"><Download /></button>
+            <div className="flex items-center gap-2">
+              <button onClick={handleExportCSV} className={`p-4 rounded-2xl border ${darkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-slate-200 text-slate-700'} shadow-sm transition-all`} title="Exportar CSV"><Download className="w-5 h-5" /></button>
+              <button onClick={handleExportPDF} className={`p-4 rounded-2xl border ${darkMode ? 'bg-gray-900 border-indigo-500/30 text-indigo-400' : 'bg-indigo-50 border-indigo-100 text-indigo-600'} shadow-sm transition-all flex items-center gap-2 font-black text-xs uppercase`} title="Gerar Relatório PDF"><FileDown className="w-5 h-5" /> PDF</button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-200/50 dark:bg-gray-900 px-4 py-2 rounded-xl uppercase tracking-tighter">
-            <StarIcon className="w-3 h-3 text-amber-500" />
-            Vantagens Ativadas
+
+          {/* New Advanced Filters Section */}
+          <div className={`p-5 rounded-3xl border flex flex-wrap items-center gap-6 ${darkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-white/80 border-slate-200'} backdrop-blur-md shadow-xl`}>
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-indigo-500" />
+              <select 
+                value={filterMonth} 
+                onChange={(e) => setFilterMonth(Number(e.target.value))}
+                className={`text-sm font-bold bg-transparent focus:outline-none ${darkMode ? 'text-white' : 'text-slate-700'}`}
+              >
+                {["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"].map((m, i) => <option key={i} value={i}>{m}</option>)}
+              </select>
+              <select 
+                value={filterYear} 
+                onChange={(e) => setFilterYear(Number(e.target.value))}
+                className={`text-sm font-bold bg-transparent focus:outline-none ${darkMode ? 'text-white' : 'text-slate-700'}`}
+              >
+                {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <div className="h-6 w-[1px] bg-slate-200 dark:bg-gray-800 md:block hidden" />
+            <div className="flex items-center gap-3">
+              <Filter className="w-4 h-4 text-indigo-500" />
+              <select 
+                value={filterCategory} 
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className={`text-sm font-bold bg-transparent focus:outline-none ${darkMode ? 'text-white' : 'text-slate-700'}`}
+              >
+                <option value="all">Todas Categorias</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -229,10 +327,10 @@ export function ModernDashboardSimple() {
           <div className="lg:col-span-3 space-y-10">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
               {[
-                { l: 'Entradas', v: stats.income, c: 'text-emerald-500', i: <TrendingUp />, g: 'from-emerald-500/20' },
-                { l: 'Saídas', v: stats.expense, c: 'text-rose-500', i: <TrendingDown />, g: 'from-rose-500/20' },
-                { l: 'Saldo', v: stats.balance, c: 'text-indigo-500', i: <Wallet />, g: 'from-indigo-500/20' },
-                { l: 'Reserva', v: `${stats.rate.toFixed(1)}%`, i: <PiggyBank />, c: 'text-amber-500', g: 'from-amber-500/20' }
+                { l: `Entradas`, v: stats.income, c: 'text-emerald-500', i: <TrendingUp />, g: 'from-emerald-500/20' },
+                { l: `Saídas`, v: stats.expense, c: 'text-rose-500', i: <TrendingDown />, g: 'from-rose-500/20' },
+                { l: 'Saldo Filtro', v: stats.balance, c: 'text-indigo-500', i: <Wallet />, g: 'from-indigo-500/20' },
+                { l: 'Taxa Reserva', v: `${stats.rate.toFixed(1)}%`, i: <PiggyBank />, c: 'text-amber-500', g: 'from-amber-500/20' }
               ].map((s, idx) => (
                 <div key={idx} className={`${darkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-white/80 border-white'} p-7 rounded-[32px] border shadow-xl backdrop-blur-sm relative overflow-hidden group hover:-translate-y-1 transition-all`}>
                   <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${s.g} to-transparent opacity-30 -mr-16 -mt-16 rounded-full transition-transform group-hover:scale-125`} />
@@ -243,26 +341,26 @@ export function ModernDashboardSimple() {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 h-fit">
-              <MonthlyChart transactions={transactions} darkMode={darkMode} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 h-fit">
+              <MonthlyChart transactions={transactions} darkMode={darkMode} selectedMonth={filterMonth} selectedYear={filterYear} />
               <div className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white/80 border-slate-100'} p-8 rounded-[32px] border shadow-xl flex flex-col backdrop-blur-sm`}>
                 <div className="flex justify-between items-center mb-8">
                   <div>
                     <h2 className={`text-lg font-black ${darkMode ? 'text-white' : 'text-slate-900 underline decoration-indigo-200 underline-offset-4'}`}>Top Gastos</h2>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Ranking Pro</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Ranking Filtrado</p>
                   </div>
                   <PieChart className="text-indigo-500 w-6 h-6" />
                 </div>
                 <div className="space-y-6 flex-1 flex flex-col justify-center">
                   {sortedCategories.map(([n, v]) => (
                     <div key={n} className="group">
-                      <div className="flex justify-between text-xs font-black mb-2 px-1"><span className={darkMode ? 'text-gray-400' : 'text-slate-600'}>{n}</span><span className={darkMode ? 'text-white' : 'text-slate-900'}>R$ {v.toLocaleString()}</span></div>
+                      <div className="flex justify-between text-xs font-black mb-2 px-1"><span className={darkMode ? 'text-gray-400' : 'text-slate-600'}>{n}</span><span className={darkMode ? 'text-white' : 'text-slate-900'}>R$ {v.toLocaleString('pt-BR')}</span></div>
                       <div className={`w-full ${darkMode ? 'bg-gray-800' : 'bg-slate-100'} h-3 rounded-full overflow-hidden shadow-inner`}>
-                        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full rounded-full shadow-lg group-hover:brightness-110 transition-all" style={{ width: `${(v / stats.expense) * 100}%` }} />
+                        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full rounded-full shadow-lg group-hover:brightness-110 transition-all" style={{ width: `${(v / (stats.expense || 1)) * 100}%` }} />
                       </div>
                     </div>
                   ))}
-                  {sortedCategories.length === 0 && <p className="text-center text-xs text-slate-400 italic">Nenhuma despesa para analisar.</p>}
+                  {sortedCategories.length === 0 && <p className="text-center text-xs text-slate-400 italic">Nenhum gasto neste filtro.</p>}
                 </div>
               </div>
             </div>
@@ -273,12 +371,12 @@ export function ModernDashboardSimple() {
               <div className="p-8 border-b border-slate-100 dark:border-gray-800 flex items-center justify-between">
                 <div>
                   <h2 className={`text-lg font-black ${darkMode ? 'text-white' : 'text-slate-900'}`}>Extrato</h2>
-                  <p className="text-[10px] text-indigo-500 font-black uppercase tracking-widest">Histórico Pro</p>
+                  <p className="text-[10px] text-indigo-500 font-black uppercase tracking-widest">Registros Filtrados ({finalFiltered.length})</p>
                 </div>
                 <div className="w-10 h-10 bg-slate-100 dark:bg-gray-800 rounded-full flex items-center justify-center"><ArrowUpRight className="text-indigo-500 w-5 h-5" /></div>
               </div>
               <div className="divide-y divide-slate-100/50 dark:divide-gray-800 h-full">
-                {filtered.slice(0, 15).map(t => (
+                {finalFiltered.slice(0, 50).map(t => (
                   <div key={t.id} className="p-5 flex items-center justify-between hover:bg-slate-100/30 dark:hover:bg-gray-800/30 cursor-pointer transition-all group" onClick={() => handleEditTransaction(t)}>
                     <div className="flex items-center gap-4">
                       <div className={`p-3 rounded-2xl transition-transform group-hover:scale-110 shadow-sm ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>{getCategoryIcon(t.category?.icon || '')}</div>
