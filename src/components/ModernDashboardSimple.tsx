@@ -329,16 +329,20 @@ export function ModernDashboardSimple() {
               <select 
                 value={filterMonth} 
                 onChange={(e) => setFilterMonth(Number(e.target.value))}
-                className={`text-sm font-bold bg-transparent focus:outline-none dark:bg-gray-900 ${darkMode ? 'text-white' : 'text-slate-700'}`}
+                className={`text-sm font-bold border-0 focus:ring-0 focus:outline-none rounded-lg p-1 ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-slate-700'}`}
               >
-                {["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"].map((m, i) => <option key={i} value={i} className={darkMode ? 'bg-gray-900 text-white' : 'bg-white text-slate-700'}>{m}</option>)}
+                {["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"].map((m, i) => (
+                  <option key={i} value={i} className={darkMode ? 'bg-gray-800 text-white' : 'bg-white text-slate-700'}>{m}</option>
+                ))}
               </select>
               <select 
                 value={filterYear} 
                 onChange={(e) => setFilterYear(Number(e.target.value))}
-                className={`text-sm font-bold bg-transparent focus:outline-none dark:bg-gray-900 ${darkMode ? 'text-white' : 'text-slate-700'}`}
+                className={`text-sm font-bold border-0 focus:ring-0 focus:outline-none rounded-lg p-1 ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-slate-700'}`}
               >
-                {[2024, 2025, 2026].map(y => <option key={y} value={y} className={darkMode ? 'bg-gray-900 text-white' : 'bg-white text-slate-700'}>{y}</option>)}
+                {[2024, 2025, 2026].map(y => (
+                  <option key={y} value={y} className={darkMode ? 'bg-gray-800 text-white' : 'bg-white text-slate-700'}>{y}</option>
+                ))}
               </select>
               <button 
                 onClick={() => { setAnalyticsType('month'); setShowAnalyticsModal(true); }}
@@ -354,10 +358,12 @@ export function ModernDashboardSimple() {
               <select 
                 value={filterCategory} 
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className={`text-sm font-bold bg-transparent focus:outline-none ${darkMode ? 'text-white' : 'text-slate-700'}`}
+                className={`text-sm font-bold border-0 focus:ring-0 focus:outline-none rounded-lg p-1 ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-slate-700'}`}
               >
-                <option value="all">Todas Categorias</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <option value="all" className={darkMode ? 'bg-gray-800 text-white' : 'bg-white text-slate-700'}>Todas Categorias</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id} className={darkMode ? 'bg-gray-800 text-white' : 'bg-white text-slate-700'}>{c.name}</option>
+                ))}
               </select>
               <button 
                 onClick={() => { setAnalyticsType('category'); setShowAnalyticsModal(true); }}
