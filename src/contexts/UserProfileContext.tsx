@@ -74,24 +74,34 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    if (!user) {
+      console.warn('UpdateProfile: No authenticated user found');
+      return null;
+    }
 
     try {
+      console.log('Attempting upsert with updates:', updates, 'for user:', user.id);
+      
       const { data, error } = await supabase
         .from('user_profiles')
-        .update({
+        .upsert({
+          user_id: user.id,
           ...updates,
           updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
+        }, { onConflict: 'user_id' })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase Upsert Error:', error);
+        throw error;
+      }
+
+      console.log('Upsert Success! New Profile Data:', data);
       setUserProfile(data);
       return data;
     } catch (error) {
-      console.error('Error updating profile context:', error);
+      console.error('Error in centralized updateProfile:', error);
       throw error;
     }
   };
