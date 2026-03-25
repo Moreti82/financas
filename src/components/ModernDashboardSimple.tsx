@@ -272,6 +272,17 @@ export function ModernDashboardSimple() {
             </div>
             <PlanButton currentTransactions={transactions.length} currentCategories={categories.length} darkMode={darkMode} />
             <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-xl border transition-all hover:scale-110 ${darkMode ? 'bg-gray-800 border-gray-700 text-yellow-400' : 'bg-white border-slate-200 text-slate-600 shadow-sm'}`} title="Alternar Tema">{darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}</button>
+            
+            {isAdmin && (
+              <button 
+                onClick={() => navigate('/admin')} 
+                className="p-2 rounded-xl border border-transparent hover:bg-purple-500/10 text-purple-500 transition-all hover:scale-110"
+                title="Painel Admin"
+              >
+                <Shield className="w-5 h-5" />
+              </button>
+            )}
+
             <div className="h-6 w-[1px] bg-slate-200 dark:bg-gray-700 mx-1" />
             <div className="flex items-center gap-3 pl-2">
               <UserAvatar email={user?.email} size="md" />
