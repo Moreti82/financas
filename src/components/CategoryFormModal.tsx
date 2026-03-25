@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Plus, Home, Car, Heart, Gamepad2, Utensils, ShoppingCart, Briefcase, Laptop, TrendingUp, Gift, Wallet } from 'lucide-react';
+import { Plus, Home, Car, Heart, Gamepad2, Utensils, ShoppingCart, Briefcase, Laptop, TrendingUp, Gift, Wallet, TrendingDown } from 'lucide-react';
 import type { Category } from '../types/database';
 import { supabase } from '../lib/supabase';
+import { useSubscription } from '../hooks/useSubscription';
+import { useToast } from '../hooks/useToast';
 
 interface CategoryFormModalProps {
   onClose: () => void;
@@ -24,9 +26,6 @@ const ICON_OPTIONS = [
   { name: 'wallet', icon: Wallet, label: 'Outros' }
 ];
 
-import { useSubscription } from '../hooks/useSubscription';
-import { useToast } from '../hooks/useToast';
-
 export function CategoryFormModal({ 
   onClose, 
   onSuccess, 
@@ -44,12 +43,13 @@ export function CategoryFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     setLoading(true);
 
     try {
       if (editingCategory) {
-        // Update existing category
-        await supabase
+        const { error } = await supabase
           .from('categories')
           .update({
             name: formData.name,
@@ -57,18 +57,17 @@ export function CategoryFormModal({
             icon: formData.icon
           })
           .eq('id', editingCategory.id);
+        if (error) throw error;
       } else {
-        // Check limits
         if (!canAddCategory(currentCount)) {
-          toast.error(`Limite de categorias atingido!`, `Seu plano atual permite apenas ${limits.categories} categorias. Faça um upgrade para o Pro para criar categorias ilimitadas!`);
+          toast.error(`Limite atingido!`, `Upgrade para Pro para categorias ilimitadas.`);
           setLoading(false);
           return;
         }
 
-        // Create new category
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          await supabase
+          const { error } = await supabase
             .from('categories')
             .insert({
               user_id: user.id,
@@ -76,17 +75,18 @@ export function CategoryFormModal({
               type: formData.type,
               icon: formData.icon
             });
+          if (error) throw error;
         }
       }
 
       toast.success(
         editingCategory ? 'Categoria atualizada!' : 'Categoria criada!', 
-        `A categoria "${formData.name}" foi salva com sucesso.`
+        `"${formData.name}" foi salva.`
       );
       onSuccess();
       onClose();
-    } catch (error) {
-      console.error('Error saving category:', error);
+    } catch (error: any) {
+      toast.error('Erro ao salvar', error.message);
     } finally {
       setLoading(false);
     }
@@ -94,133 +94,77 @@ export function CategoryFormModal({
 
 
   return (
-    <div className="space-y-6">
-      {/* Type Selection */}
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-          Tipo de Categoria
-        </label>
+        <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-3">Tipo</label>
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => setFormData({ ...formData, type: 'expense' })}
-            className={`p-4 rounded-xl border-2 transition-all ${
+            className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center ${
               formData.type === 'expense'
-                ? 'border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400'
+                ? 'border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400'
+                : 'border-slate-100 bg-white text-slate-400 dark:bg-gray-800 dark:border-gray-700'
             }`}
           >
-            <TrendingUp className="w-6 h-6 mx-auto mb-2" />
-            <span className="font-medium">Despesa</span>
+            <TrendingDown className="w-6 h-6 mb-1" />
+            <span className="text-xs font-black uppercase">Despesa</span>
           </button>
           <button
             type="button"
             onClick={() => setFormData({ ...formData, type: 'income' })}
-            className={`p-4 rounded-xl border-2 transition-all ${
+            className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center ${
               formData.type === 'income'
-                ? 'border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400'
+                ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
+                : 'border-slate-100 bg-white text-slate-400 dark:bg-gray-800 dark:border-gray-700'
             }`}
           >
-            <Plus className="w-6 h-6 mx-auto mb-2" />
-            <span className="font-medium">Receita</span>
+            <TrendingUp className="w-6 h-6 mb-1" />
+            <span className="text-xs font-black uppercase">Receita</span>
           </button>
         </div>
       </div>
 
-      {/* Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Nome da Categoria
-        </label>
+        <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2">Nome</label>
         <input
           type="text"
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-          placeholder="Ex: Supermercado, Transporte, etc."
+          className="w-full px-4 py-3 border border-slate-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white font-bold"
+          placeholder="Ex: Supermercado"
           required
         />
       </div>
 
-      {/* Icon Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-          Ícone
-        </label>
+        <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-3">Ícone</label>
         <div className="grid grid-cols-6 gap-2">
-          {ICON_OPTIONS.map((option) => {
-            const Icon = option.icon;
+          {ICON_OPTIONS.map((o) => {
+            const Icon = o.icon;
             return (
               <button
-                key={option.name}
+                key={o.name}
                 type="button"
-                onClick={() => setFormData({ ...formData, icon: option.name })}
+                onClick={() => setFormData({ ...formData, icon: o.name })}
                 className={`p-3 rounded-lg border-2 transition-all ${
-                  formData.icon === option.name
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400'
+                  formData.icon === o.name
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400'
+                    : 'border-slate-100 bg-white text-slate-400 dark:bg-gray-800 dark:border-gray-700'
                 }`}
-                title={option.label}
+                title={o.label}
               >
-                <Icon className="w-5 h-5 mx-auto" />
+                <Icon className="w-4 h-4 mx-auto" />
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Preview */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-          Preview
-        </label>
-        <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white">
-            {(() => {
-              const iconOption = ICON_OPTIONS.find(opt => opt.name === formData.icon);
-              const Icon = iconOption?.icon || Wallet;
-              return <Icon className="w-5 h-5" />;
-            })()}
-          </div>
-          <div>
-            <p className="font-medium text-gray-900 dark:text-white">
-              {formData.name || 'Nome da categoria'}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {formData.type === 'income' ? 'Receita' : 'Despesa'}
-            </p>
-          </div>
-        </div>
+      <div className="flex gap-3 pt-6 border-t border-slate-100 dark:border-gray-800">
+        <button type="button" onClick={onClose} className="flex-1 px-4 py-4 border border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 rounded-2xl hover:bg-slate-50 dark:hover:bg-gray-800 font-bold transition-all">Cancelar</button>
+        <button type="submit" disabled={loading} className="flex-1 px-4 py-4 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 disabled:opacity-50 font-black transition-all flex items-center justify-center gap-2">{loading ? 'Salvando...' : editingCategory ? 'Atualizar' : 'Criar'}</button>
       </div>
-
-      {/* Submit Button */}
-      <div className="flex gap-3 pt-4">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Plus className="w-4 h-4" />
-              {editingCategory ? 'Atualizar' : 'Criar'}
-            </>
-          )}
-        </button>
-      </div>
-    </div>
+    </form>
   );
 }
