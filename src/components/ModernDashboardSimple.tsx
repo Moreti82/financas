@@ -28,13 +28,16 @@ import {
   Laptop,
   Gift,
   Shield,
-  LogOut
+  LogOut,
+  FileText,
+  PieChart
 } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import { PlanButton } from './PlanButton';
 import { Modal } from './Modal';
 import { TransactionFormModal } from './TransactionFormModal';
 import { CategoryFormModal } from './CategoryFormModal';
+import { MonthlyChart } from './MonthlyChart';
 
 export function ModernDashboardSimple() {
   const { user, signOut } = useAuth();
@@ -58,6 +61,7 @@ export function ModernDashboardSimple() {
         supabase
           .from('transactions')
           .select('*, category:categories(*)')
+          .order('date', { ascending: false })
           .order('created_at', { ascending: false }),
         supabase
           .from('categories')
@@ -74,42 +78,47 @@ export function ModernDashboardSimple() {
     }
   };
 
-  // Calcular estatísticas com inteligência (Mês Atual vs Mês Passado)
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-  
-  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+  // Lógica de Exportação (Feature PRO)
+  const handleExport = () => {
+    const headers = ['Data', 'Descricao', 'Categoria', 'Tipo', 'Valor'];
+    const rows = transactions.map(t => [
+      new Date(t.date).toLocaleDateString('pt-BR'),
+      t.description || '',
+      t.category?.name || 'Sem categoria',
+      t.type === 'income' ? 'Receita' : 'Despesa',
+      Number(t.amount).toFixed(2)
+    ]);
+    
+    const csvContent = [
+      headers.join(','), 
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `financas_pro_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.click();
+  };
 
-  const thisMonthTransactions = transactions.filter(t => {
-    const d = new Date(t.date);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  });
+  // Lógica de Analytics: Gastos por Categoria
+  const expensesByCategory = transactions
+    .filter(t => t.type === 'expense' && t.category)
+    .reduce((acc, t) => {
+      const catName = t.category?.name || 'Outros';
+      acc[catName] = (acc[catName] || 0) + Number(t.amount);
+      return acc;
+    }, {} as Record<string, number>);
 
-  const lastMonthTransactions = transactions.filter(t => {
-    const d = new Date(t.date);
-    return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
-  });
+  const sortedCategories = Object.entries(expensesByCategory)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
 
   const calculateStats = (ts: typeof transactions) => ({
     income: ts.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
     expense: ts.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0),
   });
-
-  const currentStats = calculateStats(thisMonthTransactions);
-  const lastStats = calculateStats(lastMonthTransactions);
-
-  const getVariation = (current: number, previous: number) => {
-    if (previous === 0) return current > 0 ? 100 : 0;
-    return ((current - previous) / previous) * 100;
-  };
-
-  const variations = {
-    income: getVariation(currentStats.income, lastStats.income),
-    expense: getVariation(currentStats.expense, lastStats.expense),
-    balance: getVariation(currentStats.income - currentStats.expense, lastStats.income - lastStats.expense)
-  };
 
   const stats = {
     totalIncome: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
@@ -138,7 +147,12 @@ export function ModernDashboardSimple() {
     return icons[iconName] || <Wallet className="w-4 h-4" />;
   };
 
-  const recentTransactions = transactions.slice(0, 5);
+  const filteredTransactions = transactions.filter(t => 
+    (t.description?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (t.category?.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const recentTransactions = filteredTransactions.slice(0, 10);
 
   if (loading) {
     return (
@@ -152,7 +166,7 @@ export function ModernDashboardSimple() {
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-slate-100'} transition-colors duration-300`}>
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-slate-100'} transition-colors duration-300 pb-20`}>
       {/* Header Moderno */}
       <header className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white/80 backdrop-blur-lg border-slate-200/50'} sticky top-0 z-50 border-b shadow-sm`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -164,32 +178,29 @@ export function ModernDashboardSimple() {
                 </div>
                 <div>
                   <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>FinançasPro</h1>
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>Controle financeiro inteligente</p>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>Dashboard Pro</p>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Search Bar */}
               <div className={`hidden md:flex items-center gap-2 px-3 py-2 ${darkMode ? 'bg-gray-700' : 'bg-white'} rounded-lg border ${darkMode ? 'border-gray-600' : 'border-slate-200'}`}>
                 <Search className="w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Buscar transações..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`w-48 text-sm ${darkMode ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-white text-slate-700 placeholder-slate-400'} border-0 focus:outline-none`}
+                  className={`w-32 lg:w-48 text-sm ${darkMode ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-white text-slate-700 placeholder-slate-400'} border-0 focus:outline-none`}
                 />
               </div>
 
-              {/* Plan Button */}
               <PlanButton 
                 currentTransactions={transactions.length} 
                 currentCategories={categories.length}
                 darkMode={darkMode}
               />
 
-              {/* Theme Toggle */}
               <button
                 onClick={() => setDarkMode(!darkMode)}
                 className={`p-2 ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-white text-slate-600'} rounded-lg border ${darkMode ? 'border-gray-600' : 'border-slate-200'} hover:shadow-md transition-all`}
@@ -197,149 +208,192 @@ export function ModernDashboardSimple() {
                 {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
 
-              {/* Notifications */}
-              <button className={`p-2 ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-white text-slate-600'} rounded-lg border ${darkMode ? 'border-gray-600' : 'border-slate-200'} hover:shadow-md transition-all`}>
-                <Bell className="w-4 h-4" />
-              </button>
-
-              {/* Admin Button */}
               {isAdmin && (
                 <button
                   onClick={() => navigate('/admin')}
                   className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition-all hover:shadow-lg"
                 >
                   <Shield className="w-4 h-4" />
-                  <span className="hidden sm:inline">Admin</span>
+                  <span className="hidden sm:inline">Painel Admin</span>
                 </button>
               )}
 
-              {/* User Avatar */}
               <UserAvatar email={user?.email} size="md" />
 
-              {/* Sign Out */}
               <button
                 onClick={() => signOut()}
-                className={`flex items-center gap-2 px-4 py-2 ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-slate-600 hover:bg-slate-50'} rounded-lg border ${darkMode ? 'border-gray-600' : 'border-slate-200'} transition-all`}
+                className={`p-2 ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-red-500/20' : 'bg-white text-slate-600 hover:bg-red-50'} rounded-lg border ${darkMode ? 'border-gray-600' : 'border-slate-200'} transition-all`}
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Sair</span>
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105 shadow-sm`}>
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl text-white shadow-md">
+              <div className="p-3 bg-green-500 rounded-xl text-white shadow-lg shadow-green-500/20">
                 <TrendingUp className="w-5 h-5" />
-              </div>
-              <div className={`flex items-center gap-1 text-sm ${variations.income >= 0 ? 'text-green-600' : 'text-red-600'} font-semibold`}>
-                {variations.income >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                <span>{Math.abs(variations.income).toFixed(1)}%</span>
               </div>
             </div>
             <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>R$ {stats.totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Receitas Totais</p>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>Ganhos Totais</p>
           </div>
 
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105 shadow-sm`}>
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-r from-red-500 to-red-600 rounded-xl text-white shadow-md">
+              <div className="p-3 bg-red-500 rounded-xl text-white shadow-lg shadow-red-500/20">
                 <TrendingDown className="w-5 h-5" />
-              </div>
-              <div className={`flex items-center gap-1 text-sm ${variations.expense <= 0 ? 'text-green-600' : 'text-red-600'} font-semibold`}>
-                {variations.expense <= 0 ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                <span>{Math.abs(variations.expense).toFixed(1)}%</span>
               </div>
             </div>
             <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>R$ {stats.totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Despesas Totais</p>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>Gastos Totais</p>
           </div>
 
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105 shadow-sm`}>
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 ${stats.balance >= 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-red-500 to-red-600'} rounded-xl text-white shadow-md`}>
+              <div className={`p-3 ${stats.balance >= 0 ? 'bg-blue-500 shadow-blue-500/20' : 'bg-red-500 shadow-red-500/20'} rounded-xl text-white shadow-lg`}>
                 <Wallet className="w-5 h-5" />
-              </div>
-              <div className={`flex items-center gap-1 text-sm ${variations.balance >= 0 ? 'text-green-600' : 'text-red-600'} font-semibold`}>
-                {variations.balance >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                <span>{Math.abs(variations.balance).toFixed(1)}%</span>
               </div>
             </div>
             <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>R$ {stats.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Saldo Geral</p>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>Saldo Atual</p>
           </div>
 
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105 shadow-sm`}>
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 ${stats.savingsRate >= 20 ? 'bg-gradient-to-r from-purple-500 to-purple-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'} rounded-xl text-white shadow-md`}>
+              <div className="p-3 bg-purple-500 rounded-xl text-white shadow-lg shadow-purple-500/20">
                 <PiggyBank className="w-5 h-5" />
               </div>
-              <div className="px-2 py-1 bg-slate-100 dark:bg-gray-700 rounded text-xs font-bold text-slate-600 dark:text-gray-400">
-                META: 20%
+              <div className="text-xs font-bold text-slate-500 px-2 py-1 bg-slate-100 dark:bg-gray-700 rounded-md">
+                META 20%
               </div>
             </div>
             <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>{stats.savingsRate.toFixed(1)}%</h3>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Taxa de Economia</p>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>Taxa de Poupança</p>
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* Action Buttons */}
         <div className="flex flex-wrap gap-4 mb-8">
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all hover:shadow-lg"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-1 active:scale-95"
           >
             <Plus className="w-5 h-5" />
-            Nova Transação
+            <span className="font-semibold">Nova Transação</span>
           </button>
+          
           <button
-            onClick={() => setShowCategories(true)}
-            className={`flex items-center gap-2 px-6 py-3 ${darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-white text-slate-700 hover:bg-slate-50'} rounded-xl border ${darkMode ? 'border-gray-700' : 'border-slate-200'} transition-all hover:shadow-lg`}
+            onClick={handleExport}
+            className={`flex items-center gap-2 px-6 py-3 ${darkMode ? 'bg-gray-800 text-white border-gray-700 hover:bg-gray-700' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-xl border shadow-sm transition-all transform hover:-translate-y-1 active:scale-95`}
           >
             <Download className="w-5 h-5" />
-            Gerenciar Categorias
+            <span className="font-semibold">Exportar CSV</span>
           </button>
-          <button className={`flex items-center gap-2 px-6 py-3 ${darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-white text-slate-700 hover:bg-slate-50'} rounded-xl border ${darkMode ? 'border-gray-700' : 'border-slate-200'} transition-all hover:shadow-lg`}>
-            <Download className="w-5 h-5" />
-            Exportar Dados
+
+          <button
+            onClick={() => setShowCategories(true)}
+            className={`flex items-center gap-2 px-6 py-3 ${darkMode ? 'bg-gray-800 text-white border-gray-700 hover:bg-gray-700' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-xl border shadow-sm transition-all transform hover:-translate-y-1 active:scale-95`}
+          >
+            <FileText className="w-5 h-5" />
+            <span className="font-semibold">Categorias</span>
           </button>
         </div>
 
-        {/* Recent Transactions */}
-        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl border ${darkMode ? 'border-gray-700' : 'border-slate-200'} p-6 mb-8`}>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Transações Recentes</h2>
-            <button className={`text-sm ${darkMode ? 'text-blue-400' : 'text-blue-600'} hover:underline`}>
-              Ver todas
-            </button>
-          </div>
-          <div className="space-y-4">
-            {recentTransactions.map((transaction) => (
-              <div key={transaction.id} className={`flex items-center justify-between p-4 ${darkMode ? 'bg-gray-700' : 'bg-slate-50'} rounded-xl`}>
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 ${transaction.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} rounded-lg`}>
-                    {getCategoryIcon(transaction.category?.icon || 'wallet')}
-                  </div>
-                  <div>
-                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-slate-900'}`}>{transaction.description}</p>
-                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>{transaction.category?.name}</p>
-                  </div>
+        {/* Dashboard Panels */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Chart & Top Categories */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} shadow-sm`}>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Evolução Mensal</h2>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>Histórico de receitas vs despesas</p>
                 </div>
-                <div className="text-right">
-                  <p className={`font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.type === 'income' ? '+' : '-'}R$ {Number(transaction.amount).toFixed(2)}
-                  </p>
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>
-                    {new Date(transaction.date).toLocaleDateString('pt-BR')}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className="text-xs text-slate-500">Receitas</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <span className="text-xs text-slate-500">Despesas</span>
+                  </div>
                 </div>
               </div>
-            ))}
+              <div className="h-64">
+                <MonthlyChart transactions={transactions} />
+              </div>
+            </div>
+
+            {/* Analytics Section - PRO Feature */}
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} shadow-sm`}>
+              <div className="flex items-center gap-2 mb-6">
+                <PieChart className="w-5 h-5 text-purple-600" />
+                <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Maiores Gastos por Categoria</h2>
+              </div>
+              <div className="space-y-4">
+                {sortedCategories.length > 0 ? (
+                  sortedCategories.map(([category, value]) => (
+                    <div key={category}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>{category}</span>
+                        <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="w-full bg-slate-100 dark:bg-gray-700 rounded-full h-2.5">
+                        <div 
+                          className="bg-purple-600 h-2.5 rounded-full transition-all duration-1000" 
+                          style={{ width: `${(value / stats.totalExpense) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-slate-500 text-center py-4">Nenhum gasto registrado ainda.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Recent Transactions */}
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl border ${darkMode ? 'border-gray-700' : 'border-slate-200'} shadow-sm overflow-hidden`}>
+            <div className="p-6 border-b border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50">
+              <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Transações Recentes</h2>
+              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-slate-600'} mt-1`}>Últimos 10 movimentos</p>
+            </div>
+            <div className="divide-y divide-slate-100 dark:divide-gray-700">
+              {recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2.5 rounded-xl ${transaction.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                      {getCategoryIcon(transaction.category?.icon || 'wallet')}
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-slate-900'} truncate`}>{transaction.description || transaction.category?.name}</p>
+                      <p className={`text-[11px] ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>
+                        {transaction.category?.name} • {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-bold text-sm ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                      {transaction.type === 'income' ? '+' : '-'}R$ {Number(transaction.amount).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {recentTransactions.length === 0 && (
+                <div className="p-12 text-center text-slate-400">
+                  <Search className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                  <p>Nenhuma transação encontrada</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
