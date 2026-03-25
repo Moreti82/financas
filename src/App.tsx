@@ -5,6 +5,7 @@ import { Auth } from './components/Auth';
 import { ResponsiveDashboard } from './components/ResponsiveDashboard';
 import { AdminPage } from './pages/AdminPage';
 import { PricingPage } from './pages/PricingPage';
+import { PaymentResultPage } from './pages/PaymentResultPage';
 import { ToastContainer } from './components/ToastContainer';
 import { useToast } from './hooks/useToast';
 
@@ -31,10 +32,10 @@ function AppContent() {
           path="/admin" 
           element={<AdminPage />} 
         />
-        <Route 
-          path="/pricing" 
-          element={<PricingPage />} 
-        />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/payment-success" element={<PaymentResultPage status="success" />} />
+        <Route path="/payment-failure" element={<PaymentResultPage status="failure" />} />
+        <Route path="/payment-pending" element={<PaymentResultPage status="pending" />} />
         <Route 
           path="/" 
           element={user ? <ResponsiveDashboard /> : <Navigate to="/login" replace />} 

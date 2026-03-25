@@ -1,40 +1,44 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Crown, Star, Check, X, ArrowRight, Shield, ArrowLeft, Home, Moon, Sun } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
-import { useUserProfile } from '../hooks/useUserProfile';
 import { useToast } from '../hooks/useToast';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export function PricingPage() {
-  const { currentPlan, refreshSubscription } = useSubscription();
-  const { updateProfile } = useUserProfile();
+  const { currentPlan } = useSubscription();
   const toast = useToast();
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [upgradingTo, setUpgradingTo] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(true); // Default dark for premium feel
+  const [darkMode, setDarkMode] = useState(true);
 
   const handleUpgrade = async (planId: string) => {
     if (planId === 'free') return;
+
+    const fullPlanId = billingCycle === 'yearly' ? `${planId}_yearly` : planId;
     setUpgradingTo(planId);
-    
-    // Simular processamento de pagamento
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
     try {
-      await updateProfile({ plan: planId as any });
-      await refreshSubscription();
-      
-      toast.success(
-        `Parabéns! Bem-vindo ao Plano ${planId.toUpperCase()}! 🚀`,
-        'Seu upgrade foi processado com sucesso. Aproveite todos os recursos ilimitados!'
-      );
-      
-      navigate('/');
-    } catch (error) {
-      console.error('Erro no upgrade:', error);
-      toast.error('Erro ao processar assinatura', 'Não foi possível atualizar seu plano no momento.');
-    } finally {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Erro', 'Faça login para continuar.');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { planId: fullPlanId },
+      });
+
+      if (error || !data?.checkoutUrl) {
+        throw new Error(error?.message || data?.error || 'Falha ao criar pagamento.');
+      }
+
+      // Redireciona para o checkout do Mercado Pago
+      window.location.href = data.checkoutUrl;
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao iniciar pagamento', err.message);
       setUpgradingTo(null);
     }
   };

@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "Deno",
+    "lib": ["deno.ns", "deno.unstable"],
+    "strict": true,
+    "noImplicitAny": false
+  }
+}
