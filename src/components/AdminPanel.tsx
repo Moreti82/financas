@@ -124,12 +124,21 @@ export function AdminPanel() {
       const updates: any = { status: value };
       if (value === 'cancelled') {
         updates.cancelled_at = new Date().toISOString();
-        updates.plan = 'free'; // immediate downgrade on cancel
+        // ⚠️ NÃO reverte para Free imediatamente.
+        // O plano permanece ativo até plan_expires_at.
+        // O auto-downgrade acontece automaticamente ao vencer.
       }
       const { error } = await supabase.from('user_profiles').update(updates).eq('user_id', userId);
       if (!error) {
         setAllSubscriptions(prev => prev.map(s => s.user_id === userId ? { ...s, ...updates } : s));
-        toast.success('Status atualizado!', value === 'cancelled' ? 'Usuário cancelado e revertido para Free.' : 'Status atualizado.');
+        const sub = allSubscriptions.find(s => s.user_id === userId);
+        const expiryMsg = sub?.plan_expires_at
+          ? `Acesso mantido até ${new Date(sub.plan_expires_at).toLocaleDateString('pt-BR')}.`
+          : 'Será revertido para Free ao vencer o ciclo.';
+        toast.info(
+          'Cancelamento Registrado',
+          value === 'cancelled' ? expiryMsg : 'Status reativado com sucesso.'
+        );
       } else {
         toast.error('Erro', error.message);
       }
