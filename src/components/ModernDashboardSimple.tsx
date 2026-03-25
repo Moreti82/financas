@@ -43,8 +43,14 @@ import { CategoryFormModal } from './CategoryFormModal';
 import { MonthlyChart } from './MonthlyChart';
 import { useToast } from '../hooks/useToast';
 import { useSubscription } from '../hooks/useSubscription';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import { UserOptions } from 'jspdf-autotable';
+
+// Extend jsPDF type to include autoTable
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: UserOptions) => jsPDF;
+}
 
 export function ModernDashboardSimple() {
   const { user, signOut } = useAuth();
@@ -115,8 +121,8 @@ export function ModernDashboardSimple() {
     }
 
     try {
-      const doc = new jsPDF() as any;
-      const themeColor = [79, 70, 229]; // Indigo-600 logic
+      const doc = new jsPDF() as jsPDFWithAutoTable;
+      const themeColor: [number, number, number] = [79, 70, 229];
       
       // Header
       doc.setFillColor(themeColor[0], themeColor[1], themeColor[2]);
