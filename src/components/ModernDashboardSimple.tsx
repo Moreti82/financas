@@ -311,16 +311,16 @@ export function ModernDashboardSimple() {
               <select 
                 value={filterMonth} 
                 onChange={(e) => setFilterMonth(Number(e.target.value))}
-                className={`text-sm font-bold bg-transparent focus:outline-none ${darkMode ? 'text-white' : 'text-slate-700'}`}
+                className={`text-sm font-bold bg-transparent focus:outline-none dark:bg-gray-900 ${darkMode ? 'text-white' : 'text-slate-700'}`}
               >
-                {["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"].map((m, i) => <option key={i} value={i}>{m}</option>)}
+                {["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"].map((m, i) => <option key={i} value={i} className={darkMode ? 'bg-gray-900 text-white' : 'bg-white text-slate-700'}>{m}</option>)}
               </select>
               <select 
                 value={filterYear} 
                 onChange={(e) => setFilterYear(Number(e.target.value))}
-                className={`text-sm font-bold bg-transparent focus:outline-none ${darkMode ? 'text-white' : 'text-slate-700'}`}
+                className={`text-sm font-bold bg-transparent focus:outline-none dark:bg-gray-900 ${darkMode ? 'text-white' : 'text-slate-700'}`}
               >
-                {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                {[2024, 2025, 2026].map(y => <option key={y} value={y} className={darkMode ? 'bg-gray-900 text-white' : 'bg-white text-slate-700'}>{y}</option>)}
               </select>
               <button 
                 onClick={() => { setAnalyticsType('month'); setShowAnalyticsModal(true); }}
@@ -438,52 +438,57 @@ export function ModernDashboardSimple() {
         size={analyticsType === 'month' ? "lg" : "md"}
       >
         <div className="py-6 space-y-8">
-          {analyticsType === 'month' ? (
-            <div className="space-y-10">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-5 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
-                  <p className="text-[10px] uppercase font-black text-emerald-600 mb-1">Total Entradas</p>
-                  <p className="text-2xl font-black text-emerald-700">R$ {stats.income.toLocaleString()}</p>
-                </div>
-                <div className="p-5 bg-rose-500/10 rounded-2xl border border-rose-500/20">
-                  <p className="text-[10px] uppercase font-black text-rose-600 mb-1">Total Saídas</p>
-                  <p className="text-2xl font-black text-rose-700">R$ {stats.expense.toLocaleString()}</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Comparativo Mensal</h3>
-                <div className="flex items-end gap-10 h-64 border-b border-slate-100 pb-2 px-10">
-                  <div className="flex-1 flex flex-col items-center gap-2">
-                    <div className="w-full bg-emerald-500 rounded-t-xl transition-all duration-1000 shadow-lg shadow-emerald-500/20" style={{ height: `${(stats.income / Math.max(stats.income, stats.expense, 1)) * 100}%` }} />
-                    <span className="text-[10px] font-black text-emerald-600">Entradas</span>
+          {analyticsType === 'month' ? (() => {
+            const mIncome = dateFiltered.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+            const mExpense = dateFiltered.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+            const maxVal = Math.max(mIncome, mExpense, 1);
+            
+            return (
+              <div className="space-y-10">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-5 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                    <p className="text-[10px] uppercase font-black text-emerald-600 mb-1">Total Entradas</p>
+                    <p className="text-2xl font-black text-emerald-700">R$ {mIncome.toLocaleString()}</p>
                   </div>
-                  <div className="flex-1 flex flex-col items-center gap-2">
-                    <div className="w-full bg-rose-500 rounded-t-xl transition-all duration-1000 shadow-lg shadow-rose-500/20" style={{ height: `${(stats.expense / Math.max(stats.income, stats.expense, 1)) * 100}%` }} />
-                    <span className="text-[10px] font-black text-rose-600">Saídas</span>
+                  <div className="p-5 bg-rose-500/10 rounded-2xl border border-rose-500/20">
+                    <p className="text-[10px] uppercase font-black text-rose-600 mb-1">Total Saídas</p>
+                    <p className="text-2xl font-black text-rose-700">R$ {mExpense.toLocaleString()}</p>
                   </div>
                 </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Comparativo Mensal</h3>
+                  <div className="flex items-end gap-10 h-64 border-b border-slate-200 pb-2 px-10">
+                    <div className="flex-1 flex flex-col items-center gap-2">
+                      <div className="w-full bg-emerald-500 rounded-t-xl transition-all duration-1000 shadow-lg shadow-emerald-500/20" style={{ height: `${(mIncome / maxVal) * 100}%` }} />
+                      <span className="text-[10px] font-black text-emerald-600">Entradas</span>
+                    </div>
+                    <div className="flex-1 flex flex-col items-center gap-2">
+                      <div className="w-full bg-rose-500 rounded-t-xl transition-all duration-1000 shadow-lg shadow-rose-500/20" style={{ height: `${(mExpense / maxVal) * 100}%` }} />
+                      <span className="text-[10px] font-black text-rose-600">Saídas</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          ) : (
+            );
+          })() : (
             <div className="space-y-6">
                <div className="p-6 bg-indigo-50 dark:bg-gray-800 rounded-3xl border border-indigo-100 dark:border-gray-700 text-center">
-                  <p className="text-xs font-black text-indigo-500 uppercase tracking-widest mb-2">Total na Categoria</p>
+                  <p className="text-xs font-black text-indigo-500 uppercase tracking-widest mb-2">Gasto nesta Categoria</p>
                   <p className={`text-4xl font-black ${darkMode ? 'text-white' : 'text-slate-900'}`}>R$ {stats.expense.toLocaleString()}</p>
-                  <p className="text-[10px] text-slate-400 font-bold mt-2 lowercase italic">corresponde a {stats.rate.toFixed(1)}% das suas receitas</p>
+                  <p className="text-[10px] text-slate-400 font-bold mt-2 lowercase italic">
+                    {filterCategory === 'all' ? 'selecione uma categoria para análise detalhada' : `representa ${stats.rate.toFixed(1)}% das receitas do mês`}
+                  </p>
                </div>
                
                <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-black text-slate-500 uppercase">Impacto Financeiro</h3>
+                    <h3 className="text-sm font-black text-slate-500 uppercase">Impacto no Patrimônio</h3>
                     <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center text-white font-black text-xs shadow-lg">{stats.rate.toFixed(0)}%</div>
                   </div>
                   <div className="w-full bg-slate-100 dark:bg-gray-800 h-6 rounded-full overflow-hidden p-1 shadow-inner">
-                    <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full rounded-full transition-all duration-1000" style={{ width: `${stats.rate}%` }} />
+                    <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(stats.rate, 100)}%` }} />
                   </div>
-                  <p className="text-center text-[10px] text-slate-400 font-bold leading-relaxed">
-                    Você está comprometendo {stats.rate.toFixed(1)}% do que ganha com esta categoria específica neste mês.
-                  </p>
                </div>
             </div>
           )}
