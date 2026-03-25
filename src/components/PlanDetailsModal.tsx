@@ -163,7 +163,7 @@ export function PlanDetailsModal({ isOpen, onClose, currentTransactions, current
                   <Crown className="w-4 h-4 text-blue-500" />
                   <span className="font-medium text-gray-900 dark:text-white text-sm">Pro</span>
                 </div>
-                <span className="text-xs font-bold text-blue-600">R$ 5,00/mês</span>
+                <span className="text-xs font-bold text-blue-600">R$ 9,90/mês</span>
               </div>
               <ul className="space-y-1 text-[11px] text-gray-600 dark:text-gray-400">
                 <li className="flex items-center gap-1"><Check className="w-3 h-3 text-green-500" /> Transações e categorias ilimitadas</li>
