@@ -204,7 +204,9 @@ export function ModernDashboardSimple() {
   // 1. First Pass: Date Filter (used for MonthlyChart and Base stats)
   const dateFiltered = transactions.filter(t => {
     const d = new Date(t.date + 'T00:00:00');
-    return d.getMonth() === filterMonth && d.getFullYear() === filterYear;
+    const yearMatch = d.getFullYear() === filterYear;
+    const monthMatch = filterMonth === -1 || d.getMonth() === filterMonth;
+    return yearMatch && monthMatch;
   });
 
   // 2. Second Pass: Search & Category Filter
@@ -331,6 +333,7 @@ export function ModernDashboardSimple() {
                 onChange={(e) => setFilterMonth(Number(e.target.value))}
                 className={`text-sm font-bold border-0 focus:ring-0 focus:outline-none rounded-lg p-1 ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-slate-700'}`}
               >
+                <option value={-1} className={darkMode ? 'bg-gray-800 text-white' : 'bg-white text-slate-700'}>Todos os Meses</option>
                 {["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"].map((m, i) => (
                   <option key={i} value={i} className={darkMode ? 'bg-gray-800 text-white' : 'bg-white text-slate-700'}>{m}</option>
                 ))}
