@@ -482,14 +482,20 @@ export function ModernDashboardSimple() {
                 
                 <div className="space-y-4">
                   <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Comparativo Mensal</h3>
-                  <div className="flex items-end gap-10 h-64 border-b border-slate-200 pb-2 px-10">
-                    <div className="flex-1 flex flex-col items-center gap-2">
-                      <div className="w-full bg-emerald-500 rounded-t-xl transition-all duration-1000 shadow-lg shadow-emerald-500/20" style={{ height: `${(mIncome / maxVal) * 100}%` }} />
-                      <span className="text-[10px] font-black text-emerald-600">Entradas</span>
+                  <div className="flex items-end justify-center gap-16 h-64 border-b border-slate-200 dark:border-gray-800 pb-2 px-10">
+                    <div className="flex flex-col items-center gap-2 h-full justify-end">
+                      <div 
+                        className="w-16 bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-2xl transition-all duration-1000 shadow-xl shadow-emerald-500/20" 
+                        style={{ height: `${(mIncome / maxVal) * 100}%` }} 
+                      />
+                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">Entradas</span>
                     </div>
-                    <div className="flex-1 flex flex-col items-center gap-2">
-                      <div className="w-full bg-rose-500 rounded-t-xl transition-all duration-1000 shadow-lg shadow-rose-500/20" style={{ height: `${(mExpense / maxVal) * 100}%` }} />
-                      <span className="text-[10px] font-black text-rose-600">Saídas</span>
+                    <div className="flex flex-col items-center gap-2 h-full justify-end">
+                      <div 
+                        className="w-16 bg-gradient-to-t from-rose-600 to-rose-400 rounded-t-2xl transition-all duration-1000 shadow-xl shadow-rose-500/20" 
+                        style={{ height: `${(mExpense / maxVal) * 100}%` }} 
+                      />
+                      <span className="text-[10px] font-black text-rose-600 uppercase tracking-tighter">Saídas</span>
                     </div>
                   </div>
                 </div>
