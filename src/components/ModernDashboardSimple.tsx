@@ -30,7 +30,8 @@ import {
   Shield,
   LogOut,
   FileText,
-  PieChart
+  PieChart,
+  AlertTriangle
 } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import { PlanButton } from './PlanButton';
@@ -38,25 +39,35 @@ import { Modal } from './Modal';
 import { TransactionFormModal } from './TransactionFormModal';
 import { CategoryFormModal } from './CategoryFormModal';
 import { MonthlyChart } from './MonthlyChart';
+import { useToast } from '../hooks/useToast';
 
 export function ModernDashboardSimple() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserProfile();
   const navigate = useNavigate();
+  const toast = useToast();
+  
   const [transactions, setTransactions] = useState<TransactionWithCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<TransactionWithCategory | undefined>();
   const [showCategories, setShowCategories] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
+    setLoading(true);
+    setDbError(null);
     try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return;
+
       const [transactionsResult, categoriesResult] = await Promise.all([
         supabase
           .from('transactions')
@@ -69,37 +80,75 @@ export function ModernDashboardSimple() {
           .order('name')
       ]);
 
-      if (transactionsResult.data) setTransactions(transactionsResult.data);
-      if (categoriesResult.data) setCategories(categoriesResult.data);
+      // Verificar erros específicos do Supabase
+      if (transactionsResult.error) {
+        console.error('Erro Transações:', transactionsResult.error);
+        setDbError(`Erro Transações: ${transactionsResult.error.message}`);
+        toast.error('Erro ao carregar transações', transactionsResult.error.message);
+      } else {
+        setTransactions(transactionsResult.data || []);
+      }
+
+      if (categoriesResult.error) {
+        console.error('Erro Categorias:', categoriesResult.error);
+        setDbError(`Erro Categorias: ${categoriesResult.error.message}`);
+        toast.error('Erro ao carregar categorias', categoriesResult.error.message);
+      } else {
+        const fetchedCategories = categoriesResult.data || [];
+        setCategories(fetchedCategories);
+        
+        if (fetchedCategories.length === 0) {
+          console.warn('Nenhuma categoria encontrada no banco de dados.');
+          toast.info('Aviso', 'Nenhuma categoria cadastrada. Use o botão Gerenciar Categorias.');
+        }
+      }
+
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Crash ao carregar dados:', error);
+      setDbError('Ocorreu uma falha crítica ao carregar os dados. Verifique a conexão.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Função para abrir o formulário em modo edição
+  const handleEditTransaction = (transaction: TransactionWithCategory) => {
+    setEditingTransaction(transaction);
+    setShowForm(true);
+  };
+
   // Lógica de Exportação (Feature PRO)
   const handleExport = () => {
-    const headers = ['Data', 'Descricao', 'Categoria', 'Tipo', 'Valor'];
-    const rows = transactions.map(t => [
-      new Date(t.date).toLocaleDateString('pt-BR'),
-      t.description || '',
-      t.category?.name || 'Sem categoria',
-      t.type === 'income' ? 'Receita' : 'Despesa',
-      Number(t.amount).toFixed(2)
-    ]);
-    
-    const csvContent = [
-      headers.join(','), 
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-    
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `financas_pro_export_${new Date().toISOString().split('T')[0]}.csv`);
-    link.click();
+    if (transactions.length === 0) {
+      toast.info('Nada para exportar', 'Você ainda não possui transações para gerar um relatório.');
+      return;
+    }
+
+    try {
+      const headers = ['Data', 'Descricao', 'Categoria', 'Tipo', 'Valor'];
+      const rows = transactions.map(t => [
+        new Date(t.date).toLocaleDateString('pt-BR'),
+        t.description || '',
+        t.category?.name || 'Sem categoria',
+        t.type === 'income' ? 'Receita' : 'Despesa',
+        Number(t.amount).toFixed(2)
+      ]);
+      
+      const csvContent = [
+        headers.join(','), 
+        ...rows.map(row => row.join(','))
+      ].join('\n');
+      
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `financas_pro_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.click();
+      toast.success('Sucesso!', 'Seu relatório CSV foi gerado e baixado.');
+    } catch (err) {
+      toast.error('Erro ao exportar', 'Não foi possível gerar o arquivo CSV.');
+    }
   };
 
   // Lógica de Analytics: Gastos por Categoria
@@ -114,11 +163,6 @@ export function ModernDashboardSimple() {
   const sortedCategories = Object.entries(expensesByCategory)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
-
-  const calculateStats = (ts: typeof transactions) => ({
-    income: ts.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
-    expense: ts.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0),
-  });
 
   const stats = {
     totalIncome: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
@@ -142,7 +186,9 @@ export function ModernDashboardSimple() {
       'briefcase': <Briefcase className="w-4 h-4" />,
       'laptop': <Laptop className="w-4 h-4" />,
       'trending-up': <TrendingUp className="w-4 h-4" />,
-      'gift': <Gift className="w-4 h-4" />
+      'gift': <Gift className="w-4 h-4" />,
+      'wallet': <Wallet className="w-4 h-4" />,
+      'circle': <DollarSign className="w-4 h-4" />
     };
     return icons[iconName] || <Wallet className="w-4 h-4" />;
   };
@@ -232,6 +278,23 @@ export function ModernDashboardSimple() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error Warning */}
+        {dbError && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-red-700">
+            <AlertTriangle className="w-6 h-6 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="font-bold">Atenção:</p>
+              <p>{dbError}</p>
+            </div>
+            <button 
+              onClick={loadData}
+              className="ml-auto px-4 py-1.5 bg-red-100 hover:bg-red-200 rounded-lg text-xs font-bold transition-colors"
+            >
+              Tentar Novamente
+            </button>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} shadow-sm`}>
@@ -281,7 +344,10 @@ export function ModernDashboardSimple() {
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-4 mb-8">
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setEditingTransaction(undefined);
+              setShowForm(true);
+            }}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-1 active:scale-95"
           >
             <Plus className="w-5 h-5" />
@@ -301,7 +367,7 @@ export function ModernDashboardSimple() {
             className={`flex items-center gap-2 px-6 py-3 ${darkMode ? 'bg-gray-800 text-white border-gray-700 hover:bg-gray-700' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'} rounded-xl border shadow-sm transition-all transform hover:-translate-y-1 active:scale-95`}
           >
             <FileText className="w-5 h-5" />
-            <span className="font-semibold">Categorias</span>
+            <span className="font-semibold">Gerenciar Categorias</span>
           </button>
         </div>
 
@@ -362,15 +428,24 @@ export function ModernDashboardSimple() {
 
           {/* Right Column: Recent Transactions */}
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl border ${darkMode ? 'border-gray-700' : 'border-slate-200'} shadow-sm overflow-hidden`}>
-            <div className="p-6 border-b border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50">
-              <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Transações Recentes</h2>
-              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-slate-600'} mt-1`}>Últimos 10 movimentos</p>
+            <div className="p-6 border-b border-slate-200 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+              <div>
+                <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Transações</h2>
+                <p className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-slate-600'} mt-0.5 uppercase tracking-wider font-bold`}>Recentes</p>
+              </div>
+              {filteredTransactions.length > 10 && (
+                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-lg">+{filteredTransactions.length - 10}</span>
+              )}
             </div>
-            <div className="divide-y divide-slate-100 dark:divide-gray-700">
+            <div className="divide-y divide-slate-100 dark:divide-gray-700 max-h-[700px] overflow-y-auto custom-scrollbar">
               {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors">
+                <div 
+                  key={transaction.id} 
+                  className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer"
+                  onClick={() => handleEditTransaction(transaction)}
+                >
                   <div className="flex items-center gap-3">
-                    <div className={`p-2.5 rounded-xl ${transaction.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                    <div className={`p-2.5 rounded-xl transition-transform group-hover:scale-110 ${transaction.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                       {getCategoryIcon(transaction.category?.icon || 'wallet')}
                     </div>
                     <div className="min-w-0">
@@ -401,17 +476,25 @@ export function ModernDashboardSimple() {
       {/* Modals */}
       <Modal
         isOpen={showForm}
-        onClose={() => setShowForm(false)}
-        title="Nova Transação"
+        onClose={() => {
+          setShowForm(false);
+          setEditingTransaction(undefined);
+        }}
+        title={editingTransaction ? "Editar Transação" : "Nova Transação"}
         size="md"
       >
         <TransactionFormModal
-          onClose={() => setShowForm(false)}
+          onClose={() => {
+            setShowForm(false);
+            setEditingTransaction(undefined);
+          }}
           onSuccess={() => {
             setShowForm(false);
+            setEditingTransaction(undefined);
             loadData();
           }}
           categories={categories}
+          editingTransaction={editingTransaction}
           currentCount={transactions.length}
         />
       </Modal>

@@ -57,13 +57,20 @@ export function TransactionFormModal({
         // Create new transaction
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          await supabase
+          const { error } = await supabase
             .from('transactions')
             .insert({
               user_id: user.id,
               ...formData,
-              amount: Number(formData.amount)
+              amount: Number(formData.amount),
+              category_id: formData.category_id || null
             });
+
+          if (error) {
+            toast.error('Erro ao salvar', error.message);
+            setLoading(false);
+            return;
+          }
         }
       }
 
