@@ -148,7 +148,10 @@ export function ModernDashboardSimple() {
     return <Icon className="w-4 h-4" />;
   };
 
-  const filtered = transactions.filter(t => t.description?.toLowerCase().includes(searchTerm.toLowerCase()) || t.category?.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filtered = transactions.filter(t => 
+    t.description?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    t.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900"><div className="animate-spin h-8 w-8 border-b-2 border-white rounded-full" /></div>;
 
@@ -180,18 +183,36 @@ export function ModernDashboardSimple() {
               <input type="text" placeholder="Pesquisar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`bg-transparent text-sm border-0 focus:outline-none ${darkMode ? 'text-white' : 'text-slate-700'}`} />
             </div>
             <PlanButton currentTransactions={transactions.length} currentCategories={categories.length} darkMode={darkMode} />
-            <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-xl border transition-all hover:scale-110 ${darkMode ? 'bg-gray-800 border-gray-700 text-yellow-400' : 'bg-white border-slate-200 text-slate-600 shadow-sm'}`}><Moon className="w-5 h-5" /></button>
+            <button 
+              onClick={() => setDarkMode(!darkMode)} 
+              className={`p-2 rounded-xl border transition-all hover:scale-110 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200 text-slate-600 shadow-sm'}`} 
+              title="Alternar Tema"
+            >
+              {darkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5" />}
+            </button>
+            
+            {isAdmin && (
+              <button 
+                onClick={() => navigate('/admin')} 
+                className="p-2 rounded-xl border border-transparent hover:bg-purple-500/10 text-purple-500 transition-all hover:scale-110"
+                title="Painel Admin"
+              >
+                <Shield className="w-5 h-5" />
+              </button>
+            )}
+            
             <div className="h-6 w-[1px] bg-slate-200 dark:bg-gray-700 mx-1" />
+            
             <div className="flex items-center gap-3 pl-2">
               <UserAvatar email={user?.email} size="md" />
-              <button onClick={() => signOut()} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><LogOut className="w-5 h-5" /></button>
+              <button onClick={() => signOut()} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Sair"><LogOut className="w-5 h-5" /></button>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-[1700px] mx-auto px-4 lg:px-8 py-10">
-        {dbError && <div className="mb-8 p-4 bg-red-500 text-white rounded-2xl flex items-center gap-3 shadow-xl"><AlertTriangle /> {dbError}</div>}
+        {dbError && <div className="mb-8 p-4 bg-red-600 text-white rounded-2xl flex items-center gap-3 shadow-xl"><AlertTriangle /> {dbError}</div>}
         <div className="flex flex-wrap items-center justify-between gap-6 mb-10">
           <div className="flex flex-wrap gap-4">
             <button onClick={() => { setEditingTransaction(undefined); setShowForm(true); }} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-600/30 hover:bg-indigo-700 hover:shadow-indigo-600/40 transition-all font-bold flex items-center gap-2 transform active:scale-95"><Plus /> Novo Lançamento</button>
