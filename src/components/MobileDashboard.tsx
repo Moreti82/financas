@@ -66,14 +66,46 @@ export function MobileDashboard() {
     }
   };
 
-  // Calcular estatísticas
+  // Calcular estatísticas com inteligência (Mês Atual vs Mês Passado)
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+  const thisMonthTransactions = transactions.filter(t => {
+    const d = new Date(t.date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+
+  const lastMonthTransactions = transactions.filter(t => {
+    const d = new Date(t.date);
+    return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+  });
+
+  const calculateStats = (ts: typeof transactions) => ({
+    income: ts.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
+    expense: ts.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0),
+  });
+
+  const currentStats = calculateStats(thisMonthTransactions);
+  const lastStats = calculateStats(lastMonthTransactions);
+
+  const getVariation = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  const variations = {
+    income: getVariation(currentStats.income, lastStats.income),
+    expense: getVariation(currentStats.expense, lastStats.expense),
+    balance: getVariation(currentStats.income - currentStats.expense, lastStats.income - lastStats.expense)
+  };
+
   const stats = {
-    totalIncome: transactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + Number(t.amount), 0),
-    totalExpense: transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + Number(t.amount), 0),
+    totalIncome: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
+    totalExpense: transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0),
     balance: 0,
     transactionCount: transactions.length,
     savingsRate: 0
@@ -150,13 +182,13 @@ export function MobileDashboard() {
               <div className="p-2 bg-gradient-to-r from-green-500 to-green-600 rounded-lg text-white">
                 <TrendingUp className="w-4 h-4" />
               </div>
-              <div className="flex items-center gap-1 text-xs text-green-600">
-                <ArrowUpRight className="w-3 h-3" />
-                <span>12.5%</span>
+              <div className={`flex items-center gap-1 text-[10px] ${variations.income >= 0 ? 'text-green-600' : 'text-red-600'} font-bold`}>
+                {variations.income >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                <span>{Math.abs(variations.income).toFixed(0)}%</span>
               </div>
             </div>
             <h3 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>R$ {stats.totalIncome.toFixed(0)}</h3>
-            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Receitas</p>
+            <p className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Receitas</p>
           </div>
 
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 border ${darkMode ? 'border-gray-700' : 'border-slate-200'}`}>
@@ -164,13 +196,13 @@ export function MobileDashboard() {
               <div className="p-2 bg-gradient-to-r from-red-500 to-red-600 rounded-lg text-white">
                 <TrendingDown className="w-4 h-4" />
               </div>
-              <div className="flex items-center gap-1 text-xs text-red-600">
-                <ArrowDownRight className="w-3 h-3" />
-                <span>8.2%</span>
+              <div className={`flex items-center gap-1 text-[10px] ${variations.expense <= 0 ? 'text-green-600' : 'text-red-600'} font-bold`}>
+                {variations.expense <= 0 ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                <span>{Math.abs(variations.expense).toFixed(0)}%</span>
               </div>
             </div>
             <h3 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>R$ {stats.totalExpense.toFixed(0)}</h3>
-            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Despesas</p>
+            <p className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Despesas</p>
           </div>
 
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 border ${darkMode ? 'border-gray-700' : 'border-slate-200'}`}>
@@ -178,13 +210,13 @@ export function MobileDashboard() {
               <div className={`p-2 ${stats.balance >= 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-red-500 to-red-600'} rounded-lg text-white`}>
                 <Wallet className="w-4 h-4" />
               </div>
-              <div className={`flex items-center gap-1 text-xs ${stats.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {stats.balance >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                <span>{stats.balance >= 0 ? '15.3' : '5.7'}%</span>
+              <div className={`flex items-center gap-1 text-[10px] ${variations.balance >= 0 ? 'text-green-600' : 'text-red-600'} font-bold`}>
+                {variations.balance >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                <span>{Math.abs(variations.balance).toFixed(0)}%</span>
               </div>
             </div>
             <h3 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>R$ {stats.balance.toFixed(0)}</h3>
-            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Saldo</p>
+            <p className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Saldo</p>
           </div>
 
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 border ${darkMode ? 'border-gray-700' : 'border-slate-200'}`}>
@@ -192,13 +224,12 @@ export function MobileDashboard() {
               <div className={`p-2 ${stats.savingsRate >= 20 ? 'bg-gradient-to-r from-purple-500 to-purple-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'} rounded-lg text-white`}>
                 <PiggyBank className="w-4 h-4" />
               </div>
-              <div className={`flex items-center gap-1 text-xs ${stats.savingsRate >= 20 ? 'text-green-600' : 'text-orange-600'}`}>
-                {stats.savingsRate >= 20 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                <span>{stats.savingsRate >= 20 ? '5.2' : '2.1'}%</span>
+              <div className="px-1 py-0.5 bg-slate-100 dark:bg-gray-700 rounded text-[8px] font-bold text-slate-600 dark:text-gray-400">
+                META: 20%
               </div>
             </div>
             <h3 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>{stats.savingsRate.toFixed(0)}%</h3>
-            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Economia</p>
+            <p className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Economia</p>
           </div>
         </div>
 

@@ -74,14 +74,46 @@ export function ModernDashboardSimple() {
     }
   };
 
-  // Calcular estatísticas
+  // Calcular estatísticas com inteligência (Mês Atual vs Mês Passado)
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+  const thisMonthTransactions = transactions.filter(t => {
+    const d = new Date(t.date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+
+  const lastMonthTransactions = transactions.filter(t => {
+    const d = new Date(t.date);
+    return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+  });
+
+  const calculateStats = (ts: typeof transactions) => ({
+    income: ts.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
+    expense: ts.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0),
+  });
+
+  const currentStats = calculateStats(thisMonthTransactions);
+  const lastStats = calculateStats(lastMonthTransactions);
+
+  const getVariation = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
+
+  const variations = {
+    income: getVariation(currentStats.income, lastStats.income),
+    expense: getVariation(currentStats.expense, lastStats.expense),
+    balance: getVariation(currentStats.income - currentStats.expense, lastStats.income - lastStats.expense)
+  };
+
   const stats = {
-    totalIncome: transactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + Number(t.amount), 0),
-    totalExpense: transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + Number(t.amount), 0),
+    totalIncome: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
+    totalExpense: transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0),
     balance: 0,
     transactionCount: transactions.length,
     savingsRate: 0
@@ -199,58 +231,56 @@ export function ModernDashboardSimple() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105`}>
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105 shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl text-white">
+              <div className="p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl text-white shadow-md">
                 <TrendingUp className="w-5 h-5" />
               </div>
-              <div className="flex items-center gap-1 text-sm text-green-600">
-                <ArrowUpRight className="w-4 h-4" />
-                <span>12.5%</span>
+              <div className={`flex items-center gap-1 text-sm ${variations.income >= 0 ? 'text-green-600' : 'text-red-600'} font-semibold`}>
+                {variations.income >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                <span>{Math.abs(variations.income).toFixed(1)}%</span>
               </div>
             </div>
-            <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>R$ {stats.totalIncome.toFixed(2)}</h3>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Receitas</p>
+            <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>R$ {stats.totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Receitas Totais</p>
           </div>
 
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105`}>
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105 shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-r from-red-500 to-red-600 rounded-xl text-white">
+              <div className="p-3 bg-gradient-to-r from-red-500 to-red-600 rounded-xl text-white shadow-md">
                 <TrendingDown className="w-5 h-5" />
               </div>
-              <div className="flex items-center gap-1 text-sm text-red-600">
-                <ArrowDownRight className="w-4 h-4" />
-                <span>8.2%</span>
+              <div className={`flex items-center gap-1 text-sm ${variations.expense <= 0 ? 'text-green-600' : 'text-red-600'} font-semibold`}>
+                {variations.expense <= 0 ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                <span>{Math.abs(variations.expense).toFixed(1)}%</span>
               </div>
             </div>
-            <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>R$ {stats.totalExpense.toFixed(2)}</h3>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Despesas</p>
+            <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>R$ {stats.totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Despesas Totais</p>
           </div>
 
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105`}>
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105 shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 ${stats.balance >= 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-red-500 to-red-600'} rounded-xl text-white`}>
+              <div className={`p-3 ${stats.balance >= 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-red-500 to-red-600'} rounded-xl text-white shadow-md`}>
                 <Wallet className="w-5 h-5" />
               </div>
-              <div className={`flex items-center gap-1 text-sm ${stats.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {stats.balance >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                <span>{stats.balance >= 0 ? '15.3' : '5.7'}%</span>
+              <div className={`flex items-center gap-1 text-sm ${variations.balance >= 0 ? 'text-green-600' : 'text-red-600'} font-semibold`}>
+                {variations.balance >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                <span>{Math.abs(variations.balance).toFixed(1)}%</span>
               </div>
             </div>
-            <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>R$ {stats.balance.toFixed(2)}</h3>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Saldo</p>
+            <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>R$ {stats.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>Saldo Geral</p>
           </div>
 
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105`}>
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border ${darkMode ? 'border-gray-700' : 'border-slate-200'} hover:shadow-lg transition-all hover:scale-105 shadow-sm`}>
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 ${stats.savingsRate >= 20 ? 'bg-gradient-to-r from-purple-500 to-purple-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'} rounded-xl text-white`}>
+              <div className={`p-3 ${stats.savingsRate >= 20 ? 'bg-gradient-to-r from-purple-500 to-purple-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'} rounded-xl text-white shadow-md`}>
                 <PiggyBank className="w-5 h-5" />
               </div>
-              <div className={`flex items-center gap-1 text-sm ${stats.savingsRate >= 20 ? 'text-green-600' : 'text-orange-600'}`}>
-                {stats.savingsRate >= 20 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                <span>{stats.savingsRate >= 20 ? '5.2' : '2.1'}%</span>
+              <div className="px-2 py-1 bg-slate-100 dark:bg-gray-700 rounded text-xs font-bold text-slate-600 dark:text-gray-400">
+                META: 20%
               </div>
             </div>
             <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'} mb-1`}>{stats.savingsRate.toFixed(1)}%</h3>
