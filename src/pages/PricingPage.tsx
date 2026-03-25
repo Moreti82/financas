@@ -23,21 +23,24 @@ export function PricingPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast.error('Erro', 'Faça login para continuar.');
+        setUpgradingTo(null);
         return;
       }
 
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: { planId: fullPlanId },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
-      if (error || !data?.checkoutUrl) {
-        throw new Error(error?.message || data?.error || 'Falha ao criar pagamento.');
-      }
+      // Mostra o erro detalhado vindo da function
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      if (!data?.checkoutUrl) throw new Error('URL de pagamento não retornada.');
 
       // Redireciona para o checkout do Mercado Pago
       window.location.href = data.checkoutUrl;
     } catch (err: any) {
-      console.error(err);
+      console.error('Detalhe do erro:', err);
       toast.error('Erro ao iniciar pagamento', err.message);
       setUpgradingTo(null);
     }
