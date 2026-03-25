@@ -299,8 +299,26 @@ export function ModernDashboardSimple() {
             <button onClick={() => { setEditingTransaction(undefined); setShowForm(true); }} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl shadow-xl shadow-indigo-600/30 hover:bg-indigo-700 hover:shadow-indigo-600/40 transition-all font-bold flex items-center gap-2 transform active:scale-95"><Plus /> Novo Lançamento</button>
             <button onClick={() => setShowCategories(true)} className={`px-6 py-4 rounded-2xl border ${darkMode ? 'bg-gray-900 border-gray-800 text-white hover:bg-gray-800' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'} shadow-sm transition-all font-bold flex items-center gap-2`}><FileText className="text-slate-400" /> Categorias</button>
             <div className="flex items-center gap-2">
-              <button onClick={handleExportCSV} className={`p-4 rounded-2xl border ${darkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-slate-200 text-slate-700'} shadow-sm transition-all`} title="Exportar CSV"><Download className="w-5 h-5" /></button>
-              <button onClick={handleExportPDF} className={`p-4 rounded-2xl border ${darkMode ? 'bg-gray-900 border-indigo-500/30 text-indigo-400' : 'bg-indigo-50 border-indigo-100 text-indigo-600'} shadow-sm transition-all flex items-center gap-2 font-black text-xs uppercase`} title="Gerar Relatório PDF"><FileDown className="w-5 h-5" /> PDF</button>
+              <button 
+                onClick={() => {
+                  if (isPro || isEnterprise) handleExportCSV();
+                  else toast.info('Recurso Pro', 'Faça upgrade para exportar em CSV.');
+                }} 
+                className={`p-4 rounded-2xl border transition-all ${isPro || isEnterprise ? (darkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-slate-200 text-slate-700') : 'opacity-50 grayscale cursor-not-allowed'}`} 
+                title={isPro || isEnterprise ? "Exportar CSV" : "Disponível no Plano Pro"}
+              >
+                <Download className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => {
+                  if (isPro || isEnterprise) handleExportPDF();
+                  else toast.info('Recurso Pro', 'Relatórios PDF são exclusivos para assinantes.');
+                }} 
+                className={`p-4 rounded-2xl border transition-all flex items-center gap-2 font-black text-xs uppercase ${isPro || isEnterprise ? (darkMode ? 'bg-gray-900 border-indigo-500/30 text-indigo-400' : 'bg-indigo-50 border-indigo-100 text-indigo-600') : 'opacity-50 grayscale cursor-not-allowed'}`} 
+                title={isPro || isEnterprise ? "Gerar Relatório PDF" : "Disponível no Plano Pro"}
+              >
+                <FileDown className="w-5 h-5" /> PDF
+              </button>
             </div>
           </div>
 
