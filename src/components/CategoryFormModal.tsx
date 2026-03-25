@@ -79,6 +79,10 @@ export function CategoryFormModal({
         }
       }
 
+      toast.success(
+        editingCategory ? 'Categoria atualizada!' : 'Categoria criada!', 
+        `A categoria "${formData.name}" foi salva com sucesso.`
+      );
       onSuccess();
       onClose();
     } catch (error) {

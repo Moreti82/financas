@@ -74,6 +74,10 @@ export function TransactionFormModal({
         }
       }
 
+      toast.success(
+        editingTransaction ? 'Atualizado com sucesso!' : 'Lançamento realizado!', 
+        `Sua ${formData.type === 'income' ? 'receita' : 'despesa'} de R$ ${Number(formData.amount).toFixed(2)} foi salva.`
+      );
       onSuccess();
       onClose();
     } catch (error) {

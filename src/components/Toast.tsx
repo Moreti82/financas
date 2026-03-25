@@ -15,14 +15,10 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
   const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
-    // Enter animation
     setIsVisible(true);
-
-    // Auto close
     const timer = setTimeout(() => {
       handleClose();
     }, duration);
-
     return () => clearTimeout(timer);
   }, [duration]);
 
@@ -36,91 +32,61 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-400" />;
+        return <CheckCircle className="w-5 h-5 text-white" />;
       case 'error':
-        return <XCircle className="w-5 h-5 text-red-500" />;
+        return <XCircle className="w-5 h-5 text-white" />;
       case 'warning':
-        return <AlertCircle className="w-5 h-5 text-amber-500" />;
+        return <AlertCircle className="w-5 h-5 text-white" />;
       case 'info':
-        return <Info className="w-5 h-5 text-blue-500" />;
+        return <Info className="w-5 h-5 text-white" />;
     }
   };
 
   const getColors = () => {
     switch (type) {
       case 'success':
-        return 'border-slate-800 bg-slate-900 dark:bg-slate-900 border-slate-700';
+        return 'bg-green-600 border-green-500 shadow-green-500/40';
       case 'error':
-        return 'border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800';
+        return 'bg-red-600 border-red-500 shadow-red-500/40';
       case 'warning':
-        return 'border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800';
+        return 'bg-amber-600 border-amber-500 shadow-amber-500/40';
       case 'info':
-        return 'border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800';
-    }
-  };
-
-  const getTitleColor = () => {
-    switch (type) {
-      case 'success':
-        return 'text-white dark:text-white font-medium';
-      case 'error':
-        return 'text-red-800 dark:text-red-200';
-      case 'warning':
-        return 'text-amber-800 dark:text-amber-200';
-      case 'info':
-        return 'text-blue-800 dark:text-blue-200';
-    }
-  };
-
-  const getMessageColor = () => {
-    switch (type) {
-      case 'success':
-        return 'text-slate-300 dark:text-gray-300';
-      case 'error':
-        return 'text-red-600 dark:text-red-300';
-      case 'warning':
-        return 'text-amber-600 dark:text-amber-300';
-      case 'info':
-        return 'text-blue-600 dark:text-blue-300';
+        return 'bg-blue-600 border-blue-500 shadow-blue-500/40';
     }
   };
 
   return (
     <div
       className={`
-        fixed top-4 right-4 z-50 max-w-sm w-full
-        transform transition-all duration-300 ease-in-out
-        ${isVisible && !isLeaving ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
-        ${isLeaving ? 'translate-x-full opacity-0' : ''}
+        relative max-w-sm w-full pointer-events-auto
+        transform transition-all duration-300 ease-out
+        ${isVisible && !isLeaving ? 'translate-x-0 opacity-100 scale-100' : 'translate-x-4 opacity-0 scale-95'}
       `}
     >
       <div className={`
-        flex items-start gap-3 p-4 rounded-xl border shadow-2xl
-        ${getColors()}
+        flex items-start gap-4 p-4 rounded-xl border shadow-2xl
+        ${getColors()} text-white
       `}>
-        {/* Icon */}
-        <div className="flex-shrink-0 mt-0.5">
+        <div className="flex-shrink-0 bg-white/20 p-1.5 rounded-lg shadow-inner">
           {getIcon()}
         </div>
 
-        {/* Content */}
         <div className="flex-1 min-w-0">
-          <h4 className={`font-semibold ${getTitleColor()}`}>
+          <h4 className="font-bold text-sm leading-tight">
             {title}
           </h4>
           {message && (
-            <p className={`text-sm mt-1 ${getMessageColor()}`}>
+            <p className="text-xs mt-1 text-white/95 leading-relaxed font-semibold">
               {message}
             </p>
           )}
         </div>
 
-        {/* Close Button */}
         <button
           onClick={handleClose}
-          className="flex-shrink-0 p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+          className="flex-shrink-0 p-1 rounded-lg hover:bg-white/20 transition-colors"
         >
-          <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <X className="w-4 h-4 text-white" />
         </button>
       </div>
     </div>

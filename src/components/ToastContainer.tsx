@@ -8,7 +8,7 @@ interface ToastContainerProps {
 
 export function ToastContainer({ toasts, onClose }: ToastContainerProps) {
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed top-6 right-6 z-[9999] pointer-events-none flex flex-col gap-3 items-end">
       {toasts.map((toast) => (
         <Toast
           key={toast.id}
