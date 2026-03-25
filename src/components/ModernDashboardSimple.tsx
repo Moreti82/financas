@@ -328,6 +328,7 @@ export function ModernDashboardSimple() {
             loadData();
           }}
           categories={categories}
+          currentCount={transactions.length}
         />
       </Modal>
 
@@ -343,6 +344,7 @@ export function ModernDashboardSimple() {
             setShowCategories(false);
             loadData();
           }}
+          currentCount={categories.length}
         />
       </Modal>
     </div>

@@ -44,19 +44,26 @@ export function useSubscription() {
         return;
       }
 
-      // Mock subscription até configurar Supabase real
-      const mockSubscription: Subscription = {
-        id: 'mock-subscription',
-        user_id: user.id,
-        plan: 'free',
-        status: 'active',
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      // Buscar perfil real do Supabase
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-      setSubscription(mockSubscription);
+      if (data) {
+        const realSub: Subscription = {
+          id: data.id,
+          user_id: data.user_id,
+          plan: (data.plan as PlanType) || 'free',
+          status: 'active',
+          current_period_start: data.created_at,
+          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          created_at: data.created_at,
+          updated_at: data.updated_at
+        };
+        setSubscription(realSub);
+      }
     } catch (error) {
       console.error('Error loading subscription:', error);
     } finally {

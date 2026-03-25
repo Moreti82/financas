@@ -273,6 +273,7 @@ export function MobileDashboard() {
             loadData();
           }}
           categories={categories}
+          currentCount={transactions.length}
         />
       </Modal>
 
@@ -288,6 +289,7 @@ export function MobileDashboard() {
             setShowCategories(false);
             loadData();
           }}
+          currentCount={categories.length}
         />
       </Modal>
     </div>

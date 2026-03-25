@@ -7,6 +7,7 @@ interface CategoryFormModalProps {
   onClose: () => void;
   onSuccess: () => void;
   editingCategory?: Category;
+  currentCount: number;
 }
 
 const ICON_OPTIONS = [
@@ -23,11 +24,17 @@ const ICON_OPTIONS = [
   { name: 'wallet', icon: Wallet, label: 'Outros' }
 ];
 
+import { useSubscription } from '../hooks/useSubscription';
+import { useToast } from '../hooks/useToast';
+
 export function CategoryFormModal({ 
   onClose, 
   onSuccess, 
-  editingCategory 
+  editingCategory,
+  currentCount
 }: CategoryFormModalProps) {
+  const { canAddCategory, limits } = useSubscription();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: editingCategory?.name || '',
     type: editingCategory?.type || 'expense',
@@ -51,6 +58,13 @@ export function CategoryFormModal({
           })
           .eq('id', editingCategory.id);
       } else {
+        // Check limits
+        if (!canAddCategory(currentCount)) {
+          toast.error(`Limite de categorias atingido!`, `Seu plano atual permite apenas ${limits.categories} categorias. Faça um upgrade para o Pro para criar categorias ilimitadas!`);
+          setLoading(false);
+          return;
+        }
+
         // Create new category
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {

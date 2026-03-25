@@ -8,14 +8,21 @@ interface TransactionFormModalProps {
   onSuccess: () => void;
   categories: Category[];
   editingTransaction?: TransactionWithCategory;
+  currentCount: number;
 }
+
+import { useSubscription } from '../hooks/useSubscription';
+import { useToast } from '../hooks/useToast';
 
 export function TransactionFormModal({ 
   onClose, 
   onSuccess, 
   categories, 
-  editingTransaction 
+  editingTransaction,
+  currentCount
 }: TransactionFormModalProps) {
+  const { canAddTransaction, limits } = useSubscription();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     type: editingTransaction?.type || 'expense',
     amount: editingTransaction?.amount || '',
@@ -40,6 +47,13 @@ export function TransactionFormModal({
           })
           .eq('id', editingTransaction.id);
       } else {
+        // Check limits
+        if (!canAddTransaction(currentCount)) {
+          toast.error(`Limite do plano atingido!`, `Seu plano atual permite apenas ${limits.transactions} transações. Faça um upgrade para o Pro para ter acesso ilimitado!`);
+          setLoading(false);
+          return;
+        }
+
         // Create new transaction
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
