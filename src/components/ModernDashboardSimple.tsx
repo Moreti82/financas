@@ -464,41 +464,106 @@ export function ModernDashboardSimple() {
         title={analyticsType === 'month' ? "Análise do Período" : "Análise por Categoria"} 
         size={analyticsType === 'month' ? "lg" : "md"}
       >
-        <div className="py-6 space-y-8">
+        <div className="py-4 space-y-6">
           {analyticsType === 'month' ? (() => {
+            const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+            if (filterMonth === -1) {
+              // Annual comparative: one group per month
+              const monthlyData = monthNames.map((name, i) => {
+                const monthTx = transactions.filter(t => {
+                  const d = new Date(t.date + 'T00:00:00');
+                  return d.getFullYear() === filterYear && d.getMonth() === i;
+                });
+                return {
+                  name,
+                  income: monthTx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0),
+                  expense: monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0),
+                };
+              });
+
+              const maxVal = Math.max(...monthlyData.flatMap(m => [m.income, m.expense]), 1);
+              const totalIncome = monthlyData.reduce((s, m) => s + m.income, 0);
+              const totalExpense = monthlyData.reduce((s, m) => s + m.expense, 0);
+              const activeMths = monthlyData.filter(m => m.income > 0 || m.expense > 0);
+
+              return (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 text-center">
+                      <p className="text-[10px] uppercase font-black text-emerald-600 mb-1">Total Entradas</p>
+                      <p className="text-xl font-black text-emerald-700">R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div className="p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20 text-center">
+                      <p className="text-[10px] uppercase font-black text-rose-600 mb-1">Total Saídas</p>
+                      <p className="text-xl font-black text-rose-700">R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div className={`p-4 rounded-2xl border text-center ${totalIncome - totalExpense >= 0 ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-orange-500/10 border-orange-500/20'}`}>
+                      <p className="text-[10px] uppercase font-black text-indigo-500 mb-1">Saldo Anual</p>
+                      <p className={`text-xl font-black ${totalIncome - totalExpense >= 0 ? 'text-indigo-600' : 'text-orange-600'}`}>R$ {(totalIncome - totalExpense).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className={`text-xs font-black uppercase tracking-widest mb-4 ${darkMode ? 'text-gray-500' : 'text-slate-400'}`}>Comparativo por Mês — {filterYear}</h3>
+                    <div className={`flex items-end gap-1 h-52 border-b pb-2 overflow-x-auto ${darkMode ? 'border-gray-700' : 'border-slate-200'}`}>
+                      {monthlyData.map((m, i) => {
+                        const hasData = m.income > 0 || m.expense > 0;
+                        return (
+                          <div key={i} className="flex flex-col items-center gap-1 h-full justify-end flex-1 min-w-[36px]">
+                            <div className="flex items-end gap-0.5 h-full justify-end w-full">
+                              <div
+                                className={`flex-1 rounded-t-lg transition-all duration-700 ${hasData ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-gray-200 dark:bg-gray-800'}`}
+                                style={{ height: `${(m.income / maxVal) * 100}%`, minHeight: hasData ? '4px' : '0' }}
+                                title={`Entradas: R$ ${m.income.toLocaleString('pt-BR')}`}
+                              />
+                              <div
+                                className={`flex-1 rounded-t-lg transition-all duration-700 ${hasData ? 'bg-gradient-to-t from-rose-600 to-rose-400' : 'bg-gray-200 dark:bg-gray-800'}`}
+                                style={{ height: `${(m.expense / maxVal) * 100}%`, minHeight: hasData ? '4px' : '0' }}
+                                title={`Saídas: R$ ${m.expense.toLocaleString('pt-BR')}`}
+                              />
+                            </div>
+                            <span className={`text-[9px] font-black ${hasData ? (darkMode ? 'text-white' : 'text-slate-700') : (darkMode ? 'text-gray-700' : 'text-slate-300')}`}>{m.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center gap-6 mt-3 justify-center">
+                      <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-emerald-500" /><span className={`text-[10px] font-bold ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>Entradas</span></div>
+                      <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-rose-500" /><span className={`text-[10px] font-bold ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>Saídas</span></div>
+                      <span className={`text-[10px] font-bold ${darkMode ? 'text-gray-600' : 'text-slate-300'}`}>{activeMths.length} mese(s) com dados</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Single month view
             const mIncome = dateFiltered.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
             const mExpense = dateFiltered.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
             const maxVal = Math.max(mIncome, mExpense, 1);
-            
             return (
-              <div className="space-y-10">
+              <div className="space-y-8">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-5 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
                     <p className="text-[10px] uppercase font-black text-emerald-600 mb-1">Total Entradas</p>
-                    <p className="text-2xl font-black text-emerald-700">R$ {mIncome.toLocaleString()}</p>
+                    <p className="text-2xl font-black text-emerald-700">R$ {mIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
                   <div className="p-5 bg-rose-500/10 rounded-2xl border border-rose-500/20">
                     <p className="text-[10px] uppercase font-black text-rose-600 mb-1">Total Saídas</p>
-                    <p className="text-2xl font-black text-rose-700">R$ {mExpense.toLocaleString()}</p>
+                    <p className="text-2xl font-black text-rose-700">R$ {mExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
                 </div>
-                
-                <div className="space-y-4">
-                  <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Comparativo Mensal</h3>
-                  <div className="flex items-end justify-center gap-16 h-64 border-b border-slate-200 dark:border-gray-800 pb-2 px-10">
+                <div>
+                  <h3 className={`text-xs font-black uppercase tracking-widest mb-4 ${darkMode ? 'text-gray-500' : 'text-slate-400'}`}>{monthNames[filterMonth]} / {filterYear}</h3>
+                  <div className={`flex items-end justify-center gap-16 h-52 border-b pb-2 ${darkMode ? 'border-gray-700' : 'border-slate-200'}`}>
                     <div className="flex flex-col items-center gap-2 h-full justify-end">
-                      <div 
-                        className="w-16 bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-2xl transition-all duration-1000 shadow-xl shadow-emerald-500/20" 
-                        style={{ height: `${(mIncome / maxVal) * 100}%` }} 
-                      />
-                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">Entradas</span>
+                      <div className="w-16 bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-2xl transition-all duration-1000 shadow-xl shadow-emerald-500/20" style={{ height: `${(mIncome / maxVal) * 100}%` }} />
+                      <span className="text-[10px] font-black text-emerald-600 uppercase">Entradas</span>
                     </div>
                     <div className="flex flex-col items-center gap-2 h-full justify-end">
-                      <div 
-                        className="w-16 bg-gradient-to-t from-rose-600 to-rose-400 rounded-t-2xl transition-all duration-1000 shadow-xl shadow-rose-500/20" 
-                        style={{ height: `${(mExpense / maxVal) * 100}%` }} 
-                      />
-                      <span className="text-[10px] font-black text-rose-600 uppercase tracking-tighter">Saídas</span>
+                      <div className="w-16 bg-gradient-to-t from-rose-600 to-rose-400 rounded-t-2xl transition-all duration-1000 shadow-xl shadow-rose-500/20" style={{ height: `${(mExpense / maxVal) * 100}%` }} />
+                      <span className="text-[10px] font-black text-rose-600 uppercase">Saídas</span>
                     </div>
                   </div>
                 </div>
@@ -513,7 +578,6 @@ export function ModernDashboardSimple() {
                     {filterCategory === 'all' ? 'selecione uma categoria para análise detalhada' : `representa ${stats.rate.toFixed(1)}% das receitas do mês`}
                   </p>
                </div>
-               
                <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="text-sm font-black text-slate-500 uppercase">Impacto no Patrimônio</h3>
@@ -526,12 +590,13 @@ export function ModernDashboardSimple() {
             </div>
           )}
           
-          <div className="pt-6 border-t border-slate-100 dark:border-gray-800 flex justify-end">
+          <div className={`pt-4 border-t flex justify-end ${darkMode ? 'border-gray-800' : 'border-slate-100'}`}>
             <button 
+              type="button"
               onClick={() => setShowAnalyticsModal(false)}
-              className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg"
+              className="px-6 py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-bold hover:opacity-80 transition-all shadow-lg"
             >
-              Fechar Análise
+              Fechar
             </button>
           </div>
         </div>
