@@ -239,11 +239,11 @@ export function PricingPage() {
             <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center"><Shield className="w-8 h-8 text-emerald-500" /></div>
             <div>
               <h4 className="text-lg font-black tracking-tight">Pagamento Seguro & Criptografado</h4>
-              <p className={`text-sm font-medium ${darkMode ? 'text-gray-500' : 'text-slate-500'}`}>Processamento via Stripe com criptografia de ponta a ponta.</p>
+              <p className={`text-sm font-medium ${darkMode ? 'text-gray-500' : 'text-slate-500'}`}>Processamento via Mercado Pago com criptografia de ponta a ponta.</p>
             </div>
           </div>
           <div className="flex gap-4">
-             <div className={`px-4 py-2 rounded-xl text-xs font-black border ${darkMode ? 'border-gray-800 text-gray-500' : 'border-slate-200 text-slate-400'}`}>STRIPE</div>
+             <div className={`px-4 py-2 rounded-xl text-xs font-black border ${darkMode ? 'border-gray-800 text-gray-500' : 'border-slate-200 text-slate-400'}`}>MERCADO PAGO</div>
              <div className={`px-4 py-2 rounded-xl text-xs font-black border ${darkMode ? 'border-gray-800 text-gray-500' : 'border-slate-200 text-slate-400'}`}>PCI-DSS</div>
           </div>
         </div>
