@@ -1,9 +1,18 @@
-import { useMobile } from '../hooks/useMobile';
+import { useDeviceType } from '../hooks/useDeviceType';
 import { ModernDashboardSimple } from './ModernDashboardSimple';
+import { TabletDashboard } from './TabletDashboard';
 import { MobileDashboard } from './MobileDashboard';
 
 export function ResponsiveDashboard() {
-  const isMobile = useMobile();
+  const deviceType = useDeviceType();
 
-  return isMobile ? <MobileDashboard /> : <ModernDashboardSimple />;
+  switch (deviceType) {
+    case 'mobile':
+      return <MobileDashboard />;
+    case 'tablet':
+      return <TabletDashboard />;
+    case 'desktop':
+    default:
+      return <ModernDashboardSimple />;
+  }
 }
