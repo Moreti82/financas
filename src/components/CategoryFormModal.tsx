@@ -7,7 +7,7 @@ import { useToast } from '../hooks/useToast';
 
 interface CategoryFormModalProps {
   onClose: () => void;
-  onSuccess: () => void;
+  onSave: () => void;
   editingCategory?: Category;
   currentCount: number;
 }
@@ -28,7 +28,7 @@ const ICON_OPTIONS = [
 
 export function CategoryFormModal({ 
   onClose, 
-  onSuccess, 
+  onSave, 
   editingCategory,
   currentCount
 }: CategoryFormModalProps) {
@@ -83,7 +83,7 @@ export function CategoryFormModal({
         editingCategory ? 'Categoria atualizada!' : 'Categoria criada!', 
         `"${formData.name}" foi salva.`
       );
-      onSuccess();
+      onSave();
       onClose();
     } catch (error: any) {
       toast.error('Erro ao salvar', error.message);

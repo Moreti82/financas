@@ -7,7 +7,7 @@ import { useToast } from '../hooks/useToast';
 
 interface TransactionFormModalProps {
   onClose: () => void;
-  onSuccess: () => void;
+  onSave: () => void;
   categories: Category[];
   editingTransaction?: TransactionWithCategory;
   currentCount: number;
@@ -15,7 +15,7 @@ interface TransactionFormModalProps {
 
 export function TransactionFormModal({ 
   onClose, 
-  onSuccess, 
+  onSave, 
   categories, 
   editingTransaction,
   currentCount
@@ -74,7 +74,7 @@ export function TransactionFormModal({
         editingTransaction ? 'Atualizado!' : 'Lançamento realizado!', 
         `Valor: R$ ${Number(formData.amount).toFixed(2)}`
       );
-      onSuccess();
+      onSave();
       onClose();
     } catch (error: any) {
       toast.error('Erro ao salvar', error.message);
