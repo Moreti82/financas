@@ -41,6 +41,27 @@ export class TransactionService {
     return data;
   }
 
+  static async updateTransaction(
+    id: string,
+    updates: Partial<{
+      category_id: string | null;
+      type: 'income' | 'expense';
+      amount: number;
+      description: string;
+      date: string;
+    }>
+  ): Promise<TransactionWithCategory> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .update(updates)
+      .eq('id', id)
+      .select('*, category:categories(*)')
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as TransactionWithCategory;
+  }
+
   static async deleteTransaction(id: string): Promise<void> {
     const { error } = await supabase
       .from('transactions')
@@ -98,5 +119,77 @@ export class TransactionService {
     }
     
     return stats;
+  }
+
+  static async getTransactionsByDateRange(
+    startDate: string,
+    endDate: string
+  ): Promise<TransactionWithCategory[]> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*, category:categories(*)')
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data as TransactionWithCategory[];
+  }
+
+  static async getTransactionsByCategory(
+    categoryId: string
+  ): Promise<TransactionWithCategory[]> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*, category:categories(*)')
+      .eq('category_id', categoryId)
+      .order('date', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data as TransactionWithCategory[];
+  }
+
+  static async createCategory(category: {
+    user_id?: string | null;
+    name: string;
+    icon?: string;
+    type: 'income' | 'expense';
+  }): Promise<Category> {
+    const { data, error } = await supabase
+      .from('categories')
+      .insert(category)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  static async updateCategory(
+    id: string,
+    updates: Partial<{
+      name: string;
+      icon: string;
+      type: 'income' | 'expense';
+    }>
+  ): Promise<Category> {
+    const { data, error } = await supabase
+      .from('categories')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  static async deleteCategory(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(error.message);
   }
 }
