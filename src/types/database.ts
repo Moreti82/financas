@@ -69,6 +69,7 @@ export interface Database {
           name: string;
           icon: string;
           type: 'income' | 'expense';
+          color: string;
           created_at: string;
         };
         Insert: {
@@ -77,6 +78,7 @@ export interface Database {
           name: string;
           icon?: string;
           type: 'income' | 'expense';
+          color?: string;
           created_at?: string;
         };
         Update: {
@@ -85,6 +87,7 @@ export interface Database {
           name?: string;
           icon?: string;
           type?: 'income' | 'expense';
+          color?: string;
           created_at?: string;
         };
       };
