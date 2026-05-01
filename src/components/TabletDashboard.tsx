@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useSupabaseData } from '../hooks/useSupabaseData';
@@ -34,6 +35,7 @@ import { useToast } from '../hooks/useToast';
 export function TabletDashboard() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useUserProfile();
+  const navigate = useNavigate();
   useSubscription();
   
   const { transactions, categories, loading, refetch } = useSupabaseData();
@@ -105,7 +107,10 @@ export function TabletDashboard() {
             </button>
 
             {isAdmin && (
-              <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg transition-all hover:shadow-lg">
+              <button 
+                onClick={() => navigate('/admin')}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg transition-all hover:shadow-lg"
+              >
                 <Shield className="w-4 h-4" />
                 Admin
               </button>

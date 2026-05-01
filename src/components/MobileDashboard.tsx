@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useSupabaseData } from '../hooks/useSupabaseData';
@@ -14,7 +15,8 @@ import {
   Settings,
   LogOut,
   Moon,
-  Sun
+  Sun,
+  Shield
 } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import { PlanButton } from './PlanButton';
@@ -29,7 +31,8 @@ import { useSubscription } from '../hooks/useSubscription';
 
 export function MobileDashboard() {
   const { user, signOut } = useAuth();
-  useUserProfile();
+  const { isAdmin } = useUserProfile();
+  const navigate = useNavigate();
   useSubscription();
   
   // Use novo hook para dados do Supabase
@@ -86,6 +89,14 @@ export function MobileDashboard() {
           </div>
           
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="p-2 text-purple-600 dark:text-purple-400 rounded-lg transition-all"
+              >
+                <Shield className="w-5 h-5" />
+              </button>
+            )}
             <button
               onClick={() => setDarkMode(!darkMode)}
               className={`p-2 ${darkMode ? 'text-yellow-400' : 'text-slate-600'} rounded-lg transition-all`}
