@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { DollarSign, AlertCircle, Check } from 'lucide-react';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 const EMOJI_AVATARS = [
   { emoji: '💀', bg: 'fca5a5' },
@@ -118,6 +119,14 @@ export function Auth() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {!isSupabaseConfigured && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium">
+                  Supabase não configurado no deploy. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY nas variáveis de ambiente do Vercel e faça redeploy.
+                </span>
+              </div>
+            )}
             {!isLogin && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <label className="block text-sm font-medium text-slate-700 mb-4 text-center">
@@ -203,7 +212,7 @@ export function Auth() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isSupabaseConfigured}
               className="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0"
             >
               {loading ? (
@@ -236,7 +245,7 @@ export function Auth() {
                 setLoading(false);
               }
             }}
-            disabled={loading}
+            disabled={loading || !isSupabaseConfigured}
             className="w-full py-3.5 px-4 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium rounded-xl transition-all shadow-sm flex items-center justify-center gap-3 active:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg viewBox="0 0 24 24" className="w-5 h-5" xmlns="http://www.w3.org/2000/svg">

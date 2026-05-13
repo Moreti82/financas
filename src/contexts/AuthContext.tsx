@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { useToast } from '../hooks/useToast';
 
 interface AuthContextType {
@@ -20,7 +20,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const toast = useToast();
 
   useEffect(() => {
-    // Modo produção - usar Supabase real
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }: any) => {
       setUser(session?.user ?? null);
       setLoading(false);
@@ -39,6 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      const error = new Error('Supabase não configurado. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no deploy.');
+      toast.error('Configuração ausente', error.message);
+      return { error };
+    }
+
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -62,6 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      const error = new Error('Supabase não configurado. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no deploy.');
+      toast.error('Configuração ausente', error.message);
+      return { error };
+    }
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -82,6 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    if (!isSupabaseConfigured) {
+      const error = new Error('Supabase não configurado. Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no deploy.');
+      toast.error('Configuração ausente', error.message);
+      return { error };
+    }
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
