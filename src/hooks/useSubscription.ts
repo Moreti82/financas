@@ -45,20 +45,20 @@ export function useSubscription() {
       }
 
       // Buscar perfil real do Supabase
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
         const realSub: Subscription = {
           id: data.id,
           user_id: data.user_id,
           plan: (data.plan as PlanType) || 'free',
-          status: 'active',
+          status: data.status || 'active',
           current_period_start: data.created_at,
-          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          current_period_end: data.plan_expires_at || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           created_at: data.created_at,
           updated_at: data.updated_at
         };

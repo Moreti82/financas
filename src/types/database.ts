@@ -7,6 +7,11 @@ export interface Database {
           user_id: string;
           role: 'admin' | 'user';
           plan: 'free' | 'pro' | 'enterprise';
+          status: 'active' | 'cancelled' | 'expired';
+          plan_expires_at: string | null;
+          cancelled_at: string | null;
+          last_payment_id: string | null;
+          last_payment_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -15,6 +20,11 @@ export interface Database {
           user_id: string;
           role?: 'admin' | 'user';
           plan?: 'free' | 'pro' | 'enterprise';
+          status?: 'active' | 'cancelled' | 'expired';
+          plan_expires_at?: string | null;
+          cancelled_at?: string | null;
+          last_payment_id?: string | null;
+          last_payment_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -23,6 +33,11 @@ export interface Database {
           user_id?: string;
           role?: 'admin' | 'user';
           plan?: 'free' | 'pro' | 'enterprise';
+          status?: 'active' | 'cancelled' | 'expired';
+          plan_expires_at?: string | null;
+          cancelled_at?: string | null;
+          last_payment_id?: string | null;
+          last_payment_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

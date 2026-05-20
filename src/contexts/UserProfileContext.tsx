@@ -31,11 +31,11 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
         return;
       }
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
         setUserProfile(data);
@@ -45,11 +45,11 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
           .from('user_profiles')
           .insert({
             user_id: user.id,
-            role: userEmail === 'engmoreti@gmail.com' ? 'admin' : 'user',
+            role: (userEmail === 'engmoreti@gmail.com' || userEmail === 'admin@financaspro.com') ? 'admin' : 'user',
             plan: 'free'
           })
           .select()
-          .single();
+          .maybeSingle();
         if (newProfile) setUserProfile(newProfile);
       }
     } catch (error) {
@@ -80,29 +80,23 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
     }
 
     try {
-      console.log('Attempting upsert with updates:', updates, 'for user:', user.id);
-      
       const { data, error } = await supabase
         .from('user_profiles')
         .upsert({
           user_id: user.id,
-          role: userProfile?.role || 'user', // Garantir que o papel não se perca
+          role: userProfile?.role || 'user',
           ...updates,
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' })
         .select()
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        console.error('Supabase Upsert Error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Upsert Success! New Profile Data:', data);
       setUserProfile(data);
       return data;
     } catch (error) {
-      console.error('Error in centralized updateProfile:', error);
+      console.error('Error in updateProfile:', error);
       throw error;
     }
   };

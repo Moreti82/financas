@@ -10,11 +10,6 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
   const { userProfile, loading, isAdmin } = useUserProfile();
   const navigate = useNavigate();
 
-  // Debug
-  console.log('AdminProtectedRoute - isAdmin:', isAdmin);
-  console.log('AdminProtectedRoute - userProfile:', userProfile);
-  console.log('AdminProtectedRoute - loading:', loading);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
